@@ -47,6 +47,7 @@ const els = {
   list: document.getElementById('signal-list'),
   empty: document.getElementById('empty'),
   exportBtn: document.getElementById('export-digest'),
+  briefBtn: document.getElementById('generate-brief'),
   tpl: document.getElementById('item-template'),
   statTotal: document.getElementById('stat-total'),
   statHigh: document.getElementById('stat-high'),
@@ -181,6 +182,44 @@ function addItem(evt) {
   showToast('Signal added');
 }
 
+function recommendationFor(item) {
+  if (item.urgency >= 5) return 'Act now: assign owner and post to core channel in the next 30 minutes.';
+  if (item.category === 'Funding') return 'Check eligibility and draft application notes before end of day.';
+  if (item.category === 'Hiring') return 'Share with hiring lead and capture candidate/referral deadline.';
+  if (item.category === 'Event') return 'Confirm attendance window and who will represent the community.';
+  if (item.category === 'Opportunity') return 'Validate fit and send outreach while signal is still fresh.';
+  return 'Log next step and owner for tomorrow morning standup.';
+}
+
+function generateDailyBrief() {
+  const items = sortedFilteredItems();
+  if (!items.length) {
+    showToast('No signals available for brief');
+    return;
+  }
+
+  const date = new Date().toISOString().slice(0, 10);
+  const topItems = items.slice(0, 5);
+  const lines = [
+    `# Daily Community Brief (${date})`,
+    '',
+    '## Priority Signals',
+    ...topItems.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Score: ${score(item)} (Urgency ${item.urgency} • Relevance ${item.relevance})`),
+    '',
+    '## Recommended Actions',
+    ...topItems.map((item, idx) => `${idx + 1}. ${recommendationFor(item)}`),
+  ];
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `community-daily-brief-${date}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Daily brief generated');
+}
+
 function exportDigest() {
   const items = sortedFilteredItems();
   if (!items.length) {
@@ -230,5 +269,6 @@ els.clearFilters.addEventListener('click', () => {
   showToast('Filters reset');
 });
 els.exportBtn.addEventListener('click', exportDigest);
+els.briefBtn.addEventListener('click', generateDailyBrief);
 
 render();

@@ -10,6 +10,7 @@ A lightweight app that helps small communities capture scattered updates, rank w
 - Includes one-click community presets (startup, OSS, local org)
 - Ranks updates with a transparent scoring formula: `urgency * 2 + relevance`
 - Filters by category and urgency to focus fast
+- Generates a daily brief markdown with action recommendations
 - Exports a markdown digest for async sharing
 
 ## Why this community

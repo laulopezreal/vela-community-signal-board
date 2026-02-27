@@ -17,7 +17,7 @@
 
 ## Feature Mandate Upgrades
 - [x] Community templates (startup / OSS / local org)
-- [ ] Daily brief generator with action recommendations
+- [x] Daily brief generator with action recommendations
 - [ ] Signal confidence + owner assignment
 
 ## Submission Assets
