@@ -11,4 +11,4 @@
 Continue low-risk winner-mode polish and readiness validation while waiting for Lau approval on live-link activation and final submit.
 
 ## First Executable Step
-Run one more contained style/reliability micro-batch (metadata readability or optional density toggle) and re-validate (`node --check` + smoke check).
+Validate judge walkthrough end-to-end using the new health-check preflight path, then tighten any remaining copy mismatches across README/checklist/submission docs.

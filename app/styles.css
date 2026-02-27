@@ -265,6 +265,35 @@ button:disabled { opacity: .65; cursor: not-allowed; }
 
 .btn-muted:hover { background: #1a2a4a; }
 
+.health-status {
+  margin: .78rem 0 0;
+  font-size: .84rem;
+  border: 1px solid var(--border);
+  background: rgba(20, 32, 59, 0.38);
+  color: #dbe7ff;
+  border-radius: 999px;
+  display: inline-block;
+  padding: .28rem .62rem;
+}
+
+.health-status.is-pass {
+  border-color: rgba(52, 211, 153, 0.45);
+  color: #d6ffe9;
+  background: rgba(31, 138, 91, 0.2);
+}
+
+.health-status.is-warn {
+  border-color: rgba(251, 191, 36, 0.45);
+  color: #fff0cc;
+  background: rgba(245, 158, 11, 0.2);
+}
+
+.health-status.is-fail {
+  border-color: rgba(248, 113, 113, 0.55);
+  color: #ffd7d7;
+  background: rgba(220, 38, 38, 0.2);
+}
+
 .signal-list {
   list-style: none;
   margin: .9rem 0 0;

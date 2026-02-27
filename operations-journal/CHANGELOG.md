@@ -48,3 +48,14 @@
 - [verify] Re-ran `node --check app/main.js` and local ephemeral-port HTTP smoke check.
 - [docs] Updated `docs/STYLE_LOOP.md`, `docs/TEST_REPORT.md`, `Important.agent.md`, and `memory/2026-02-27.md` for batch-3 continuity.
 - [rollback] Revert `app/styles.css` and `app/main.js` to undo style-loop batch 3.
+- [feature] Added deterministic `Load Demo Scenario` path in UI (`app/index.html`, `app/main.js`) with fixed seed signals for zero-risk judging demo.
+- [artifact] Added `docs/DEMO_PROOF_ARTIFACT.md` with reproducible fixture, expected scores, rank order, and expected stats.
+- [docs] Tightened `README.md` and `submission/SUBMISSION_DRAFT.md` with 30-second opening narrative and judge objection handling.
+- [sync] Updated `ops/VELA_SUBMISSION_CHECKLIST.md`, `docs/TEST_REPORT.md`, and `docs/FINAL_SUBMISSION_REVIEW.md` to keep readiness state aligned.
+- [verify] Ran `node --check app/main.js` and local HTTP smoke check (`curl http://127.0.0.1:5181`) verifying demo button presence.
+- [rollback] Revert `app/index.html`, `app/main.js`, and docs listed above to remove deterministic-demo package changes.
+- [research] Collected Devpost judging signals and synthesized priority criteria into `docs/WIN_SIGNAL_SYNTHESIS.md`.
+- [feature] Added in-app `Run Health Check` preflight with visible PASS/ATTENTION status (`app/index.html`, `app/main.js`, `app/styles.css`).
+- [docs] Added `docs/JUDGE_ALIGNMENT_MATRIX.md` and updated `README.md` + `submission/SUBMISSION_DRAFT.md` with judge-facing preflight and evidence mapping.
+- [verify] Ran `node --check app/main.js` and local HTTP smoke check (`curl http://127.0.0.1:5182` grep for health-check controls).
+- [risk] Hit Brave Search 429 twice consecutively; stopped retries per rate-limit policy and proceeded with fetched sources.

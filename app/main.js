@@ -28,6 +28,49 @@ const TEMPLATE_PRESETS = {
   },
 };
 
+const DEMO_SCENARIO_ITEMS = [
+  {
+    title: 'Grant call closes tonight for community tooling',
+    source: 'Email digest',
+    category: 'Funding',
+    urgency: 5,
+    relevance: 4,
+    confidence: 4,
+    owner: 'Ops lead',
+    createdAt: Date.parse('2026-02-27T09:10:00Z'),
+  },
+  {
+    title: 'AI safety workshop requests 2 startup mentors',
+    source: 'Founder Slack',
+    category: 'Opportunity',
+    urgency: 4,
+    relevance: 5,
+    confidence: 4,
+    owner: 'Partnerships',
+    createdAt: Date.parse('2026-02-27T08:50:00Z'),
+  },
+  {
+    title: 'Partner community opening senior ML role',
+    source: 'WhatsApp group',
+    category: 'Hiring',
+    urgency: 4,
+    relevance: 4,
+    confidence: 3,
+    owner: 'Talent lead',
+    createdAt: Date.parse('2026-02-27T08:20:00Z'),
+  },
+  {
+    title: 'Open-source observability tool launches beta',
+    source: 'X/Twitter',
+    category: 'Tool',
+    urgency: 3,
+    relevance: 4,
+    confidence: 3,
+    owner: 'Tech lead',
+    createdAt: Date.parse('2026-02-27T07:50:00Z'),
+  },
+];
+
 function safeLoadItems() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -76,12 +119,15 @@ const els = {
   filterCategory: document.getElementById('filter-category'),
   filterUrgency: document.getElementById('filter-urgency'),
   clearFilters: document.getElementById('clear-filters'),
+  loadDemo: document.getElementById('load-demo'),
   list: document.getElementById('signal-list'),
   empty: document.getElementById('empty'),
   emptyCopy: document.getElementById('empty-copy'),
   exportBtn: document.getElementById('export-digest'),
   briefBtn: document.getElementById('generate-brief'),
   copyBriefBtn: document.getElementById('copy-brief'),
+  runHealthBtn: document.getElementById('run-health-check'),
+  healthStatus: document.getElementById('health-status'),
   tpl: document.getElementById('item-template'),
   statTotal: document.getElementById('stat-total'),
   statHigh: document.getElementById('stat-high'),
@@ -252,6 +298,25 @@ function applyTemplatePreset() {
   showToast('Template applied');
 }
 
+function loadDemoScenario() {
+  state.items = DEMO_SCENARIO_ITEMS.map((item, idx) => ({
+    ...item,
+    id: `demo-${idx + 1}`,
+  }));
+
+  state.search = '';
+  state.filterCategory = 'all';
+  state.filterUrgency = 0;
+  els.search.value = '';
+  els.filterCategory.value = 'all';
+  els.filterUrgency.value = '0';
+
+  localStorage.removeItem(FORM_DRAFT_KEY);
+  persist();
+  render();
+  showToast('Demo scenario loaded');
+}
+
 function addItem(evt) {
   evt.preventDefault();
   const item = {
@@ -387,6 +452,40 @@ function exportDigest() {
   showToast('Digest exported');
 }
 
+function setHealthStatus(text, level = 'pass') {
+  if (!els.healthStatus) return;
+  els.healthStatus.textContent = text;
+  els.healthStatus.classList.remove('is-pass', 'is-warn', 'is-fail');
+  els.healthStatus.classList.add(`is-${level}`);
+}
+
+function runHealthCheck() {
+  const checks = [];
+
+  try {
+    const key = '__csb_health__';
+    localStorage.setItem(key, 'ok');
+    const ok = localStorage.getItem(key) === 'ok';
+    localStorage.removeItem(key);
+    checks.push({ name: 'Storage roundtrip', ok });
+  } catch {
+    checks.push({ name: 'Storage roundtrip', ok: false });
+  }
+
+  const demoTop = [...DEMO_SCENARIO_ITEMS].sort((a, b) => score(b) - score(a) || b.createdAt - a.createdAt)[0]?.title;
+  checks.push({ name: 'Deterministic demo ranking', ok: demoTop === 'Grant call closes tonight for community tooling' });
+
+  checks.push({ name: 'Export capability', ok: typeof Blob !== 'undefined' && typeof URL?.createObjectURL === 'function' });
+  checks.push({ name: 'Core crypto/id support', ok: !!(globalThis.crypto?.randomUUID || globalThis.crypto?.getRandomValues) });
+
+  const passCount = checks.filter((x) => x.ok).length;
+  const corePass = passCount === checks.length;
+  const level = corePass ? 'pass' : passCount >= checks.length - 1 ? 'warn' : 'fail';
+
+  setHealthStatus(`Health ${corePass ? 'PASS' : 'ATTENTION'} • ${passCount}/${checks.length} checks passed`, level);
+  showToast(corePass ? 'Health check passed' : 'Health check found issues');
+}
+
 els.form.addEventListener('submit', addItem);
 els.form.addEventListener('input', saveFormDraft);
 els.search.addEventListener('input', (e) => {
@@ -412,9 +511,11 @@ els.clearFilters.addEventListener('click', () => {
   showToast('Filters reset');
 });
 els.applyTemplate?.addEventListener('click', applyTemplatePreset);
+els.loadDemo?.addEventListener('click', loadDemoScenario);
 els.exportBtn.addEventListener('click', exportDigest);
 els.briefBtn.addEventListener('click', generateDailyBrief);
 els.copyBriefBtn?.addEventListener('click', copyTopActions);
+els.runHealthBtn?.addEventListener('click', runHealthCheck);
 
 loadFormDraft();
 persist();
