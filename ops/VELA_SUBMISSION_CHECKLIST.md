@@ -15,6 +15,11 @@
 - [x] Value to that community is demonstrated
 - [x] Scope aligns with challenge prompt
 
+## Feature Mandate Upgrades
+- [x] Community templates (startup / OSS / local org)
+- [ ] Daily brief generator with action recommendations
+- [ ] Signal confidence + owner assignment
+
 ## Submission Assets
 - [ ] Project link/repo live and shareable
 - [x] Repo readiness path documented (`submission/REPO_READINESS.md`)

@@ -170,6 +170,19 @@ h2 {
   font-size: .9rem;
 }
 
+.template-controls {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .55rem;
+  margin-bottom: .7rem;
+}
+
+.template-controls button {
+  align-self: end;
+  width: auto;
+  padding-inline: .95rem;
+}
+
 .score-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

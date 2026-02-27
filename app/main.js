@@ -1,5 +1,29 @@
 const STORAGE_KEY = 'community-signal-board-v1';
 
+const COMMUNITY_TEMPLATES = {
+  startup: {
+    title: 'Pilot invite: founder GTM working session',
+    source: 'Founder Slack',
+    category: 'Opportunity',
+    urgency: 4,
+    relevance: 5,
+  },
+  oss: {
+    title: 'Maintainer call: contributors needed for release hardening',
+    source: 'GitHub Discussions',
+    category: 'Tool',
+    urgency: 3,
+    relevance: 4,
+  },
+  'local-org': {
+    title: 'City tech meetup partnership slot opened',
+    source: 'Community newsletter',
+    category: 'Event',
+    urgency: 4,
+    relevance: 4,
+  },
+};
+
 const state = {
   items: JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'),
   filterCategory: 'all',
@@ -14,6 +38,8 @@ const els = {
   category: document.getElementById('category'),
   urgency: document.getElementById('urgency'),
   relevance: document.getElementById('relevance'),
+  template: document.getElementById('community-template'),
+  applyTemplate: document.getElementById('apply-template'),
   search: document.getElementById('search'),
   filterCategory: document.getElementById('filter-category'),
   filterUrgency: document.getElementById('filter-urgency'),
@@ -99,6 +125,27 @@ function render() {
   renderStats();
 }
 
+function applyTemplatePreset() {
+  const templateId = els.template.value;
+  if (!templateId) {
+    showToast('Pick a template first');
+    return;
+  }
+
+  const template = COMMUNITY_TEMPLATES[templateId];
+  if (!template) {
+    showToast('Template not found');
+    return;
+  }
+
+  els.title.value = template.title;
+  els.source.value = template.source;
+  els.category.value = template.category;
+  els.urgency.value = template.urgency;
+  els.relevance.value = template.relevance;
+  showToast('Template applied');
+}
+
 function addItem(evt) {
   evt.preventDefault();
   const item = {
@@ -159,6 +206,7 @@ function exportDigest() {
 }
 
 els.form.addEventListener('submit', addItem);
+els.applyTemplate.addEventListener('click', applyTemplatePreset);
 els.search.addEventListener('input', (e) => {
   state.search = e.target.value;
   render();

@@ -46,6 +46,17 @@
       <section class="card form-card">
         <h2>Add Signal</h2>
         <p class="section-copy">Capture one update at a time. Keep titles action-oriented and source-specific.</p>
+        <div class="template-controls" aria-label="Community templates">
+          <label>Template preset
+            <select id="community-template">
+              <option value="">No template</option>
+              <option value="startup">Startup community</option>
+              <option value="oss">OSS maintainers</option>
+              <option value="local-org">Local org / meetup</option>
+            </select>
+          </label>
+          <button id="apply-template" class="btn-muted" type="button">Apply preset</button>
+        </div>
         <form id="signal-form" novalidate>
           <label>Title<input id="title" required maxlength="120" placeholder="Pilot opening for AI safety workshop" /></label>
           <label>Source<input id="source" required maxlength="80" placeholder="Slack, X, Email, Discord..." /></label>

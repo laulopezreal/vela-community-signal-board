@@ -8,6 +8,7 @@
 - [x] Page loads and main sections render
 - [x] JS syntax validation: `node --check app/main.js`
 - [x] Add signal form accepts valid inputs
+- [x] Template preset applies expected startup / OSS / local org defaults
 - [x] Ranking formula applied: `urgency * 2 + relevance`
 - [x] Category filter updates list
 - [x] Urgency filter updates list
