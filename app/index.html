@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Community Signal Board</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg-glow bg-glow-a"></div>
+    <div class="bg-glow bg-glow-b"></div>
+
+    <header class="header shell">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <div>
+          <h1>Community Signal Board</h1>
+          <p>Professional signal triage for builder communities.</p>
+        </div>
+      </div>
+      <div class="meta-chip">MVP • Weekend Challenge</div>
+    </header>
+
+    <section class="shell stats" aria-label="Summary stats">
+      <article class="stat-card">
+        <p class="stat-label">Total Signals</p>
+        <p class="stat-value" id="stat-total">0</p>
+      </article>
+      <article class="stat-card">
+        <p class="stat-label">High Urgency (4+)</p>
+        <p class="stat-value" id="stat-high">0</p>
+      </article>
+      <article class="stat-card">
+        <p class="stat-label">Average Score</p>
+        <p class="stat-value" id="stat-avg">0.0</p>
+      </article>
+    </section>
+
+    <main class="layout shell">
+      <section class="card form-card">
+        <h2>Add Signal</h2>
+        <form id="signal-form">
+          <label>Title<input id="title" required maxlength="120" /></label>
+          <label>Source<input id="source" required maxlength="80" placeholder="Slack, X, Email, Discord..." /></label>
+          <label>Category
+            <select id="category" required>
+              <option value="Opportunity">Opportunity</option>
+              <option value="Funding">Funding</option>
+              <option value="Event">Event</option>
+              <option value="Tool">Tool</option>
+              <option value="Hiring">Hiring</option>
+            </select>
+          </label>
+          <label>Urgency (1-5)<input id="urgency" type="number" min="1" max="5" value="3" required /></label>
+          <label>Relevance (1-5)<input id="relevance" type="number" min="1" max="5" value="3" required /></label>
+          <button type="submit">Add Signal</button>
+        </form>
+      </section>
+
+      <section class="card list-card">
+        <div class="toolbar">
+          <h2>Signals</h2>
+          <div class="filters">
+            <select id="filter-category">
+              <option value="all">All categories</option>
+              <option value="Opportunity">Opportunity</option>
+              <option value="Funding">Funding</option>
+              <option value="Event">Event</option>
+              <option value="Tool">Tool</option>
+              <option value="Hiring">Hiring</option>
+            </select>
+            <select id="filter-urgency">
+              <option value="0">Any urgency</option>
+              <option value="4">Urgency 4+</option>
+              <option value="5">Urgency 5 only</option>
+            </select>
+            <button id="export-digest" type="button">Export Digest</button>
+          </div>
+        </div>
+        <ul id="signal-list" class="signal-list"></ul>
+        <p id="empty" class="empty">No signals yet. Add your first high-signal update.</p>
+      </section>
+    </main>
+
+    <template id="item-template">
+      <li class="signal-item">
+        <div>
+          <h3 class="item-title"></h3>
+          <p class="item-meta"></p>
+        </div>
+        <div class="item-right">
+          <span class="score"></span>
+          <button class="delete" type="button">Delete</button>
+        </div>
+      </li>
+    </template>
+
+    <script src="./main.js"></script>
+  </body>
+</html>
