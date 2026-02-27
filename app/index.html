@@ -40,6 +40,10 @@
         <p class="stat-label">Average Score</p>
         <p class="stat-value" id="stat-avg">0.0</p>
       </article>
+      <article class="stat-card">
+        <p class="stat-label">Assigned Signals</p>
+        <p class="stat-value" id="stat-assigned">0</p>
+      </article>
     </section>
 
     <main class="layout shell">
@@ -72,7 +76,9 @@
           <div class="score-grid">
             <label>Urgency (1-5)<input id="urgency" type="number" min="1" max="5" value="3" required /></label>
             <label>Relevance (1-5)<input id="relevance" type="number" min="1" max="5" value="3" required /></label>
+            <label>Confidence (1-5)<input id="confidence" type="number" min="1" max="5" value="3" required /></label>
           </div>
+          <label>Owner<input id="owner" maxlength="80" placeholder="Name, team, or role" /></label>
           <button type="submit">Add Signal</button>
         </form>
       </section>

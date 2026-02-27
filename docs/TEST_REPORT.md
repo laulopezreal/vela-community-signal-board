@@ -8,8 +8,8 @@
 - [x] Page loads and main sections render
 - [x] JS syntax validation: `node --check app/main.js`
 - [x] Add signal form accepts valid inputs
-- [x] Template preset applies expected startup / OSS / local org defaults
-- [x] Ranking formula applied: `urgency * 2 + relevance`
+- [x] Ranking formula applied: `urgency * 2 + relevance + confidence`
+- [x] Owner and confidence fields are saved and rendered on each signal
 - [x] Category filter updates list
 - [x] Urgency filter updates list
 - [x] Delete item removes record from list and storage
