@@ -12,10 +12,10 @@
         <span class="brand-dot"></span>
         <div>
           <h1>Community Signal Board</h1>
-          <p>Professional signal triage for builder communities.</p>
+          <p>90-second proof: capture, rank, assign, and ship a daily brief.</p>
         </div>
       </div>
-      <div class="meta-chip">MVP • Weekend Challenge</div>
+      <div class="meta-chip">MVP • Judge Demo Ready</div>
     </header>
 
     <section class="shell capability-strip" aria-label="Core capabilities">
@@ -45,8 +45,8 @@
 
     <main class="layout shell">
       <section class="card form-card">
-        <h2>Add Signal</h2>
-        <p class="section-copy">Capture one update at a time. Keep titles action-oriented and source-specific.</p>
+        <h2>Step 1: Add Signal</h2>
+        <p class="section-copy">Capture one update in under 10 seconds. Use action-first titles and specific sources.</p>
         <div class="template-controls" aria-label="Community templates">
           <label>Template preset
             <select id="community-template">
@@ -82,7 +82,7 @@
 
       <section class="card list-card">
         <div class="toolbar">
-          <h2>Signals</h2>
+          <h2>Step 2: Rank and Triage</h2>
           <div class="filters">
             <input id="search" type="search" placeholder="Search title or source" />
             <select id="filter-category">
@@ -98,9 +98,12 @@
               <option value="4">Urgency 4+</option>
               <option value="5">Urgency 5 only</option>
             </select>
+            <button id="load-demo" type="button" class="btn-muted">Load Demo Signals</button>
+            <button id="demo-reset" type="button" class="btn-muted">Start Clean Demo</button>
             <button id="clear-filters" type="button" class="btn-muted">Clear</button>
-            <button id="generate-brief" type="button" class="btn-muted">Generate Daily Brief</button>
-            <button id="export-digest" type="button">Export Digest</button>
+            <button id="generate-brief" type="button" class="btn-muted">Step 3: Generate Brief</button>
+            <button id="copy-brief" type="button" class="btn-muted">Copy Top Actions</button>
+            <button id="export-digest" type="button">Step 4: Export Digest</button>
           </div>
         </div>
         <ul id="signal-list" class="signal-list"></ul>
@@ -113,9 +116,10 @@
 
     <template id="item-template">
       <li class="signal-item">
-        <div>
+        <div class="item-main">
           <h3 class="item-title"></h3>
           <p class="item-meta"></p>
+          <p class="item-metrics"></p>
         </div>
         <div class="item-right">
           <span class="score"></span>

@@ -3,14 +3,17 @@
 Weekend challenge MVP for builder and operator communities.
 
 ## One-line pitch
-A lightweight app that helps small communities capture scattered updates, rank what matters now, and export a daily action digest.
+A local-first triage app that helps small communities capture scattered updates, rank what matters now, assign owners, and export a daily action digest.
 
 ## What it does
 - Captures high-signal updates manually (title, source, urgency, category, relevance, confidence, owner)
 - Ranks updates with a transparent scoring formula: `urgency * 2 + relevance + confidence`
 - Filters by category and urgency to focus fast
+- Loads a one-click demo signal set for reliable 90-second judge walkthroughs
+- Resets to a clean deterministic demo state with `Start Clean Demo` for repeatable live judging
 - Applies community templates (startup, OSS, local org) for faster, consistent capture
 - Generates a daily brief markdown with action recommendations
+- Copies top actions to clipboard for fast sharing in chat/email
 - Exports a markdown digest for async sharing
 - Safely recovers from corrupted localStorage data without breaking app load
 
@@ -59,8 +62,8 @@ Current style upgrades in this loop:
 - Repo readiness path: `submission/REPO_READINESS.md`
 
 ## Demo narrative (90 seconds)
-1. Add 3-5 signals from different channels.
-2. Show ranking order and explain urgency-weighted scoring.
-3. Filter to critical opportunities.
-4. Export markdown digest and preview output.
-5. Close with impact: fewer missed opportunities, faster shared awareness.
+1. Frame the pain: high-value community updates are fragmented and easy to miss.
+2. Click **Start Clean Demo** for a deterministic, clutter-free sample dataset.
+3. Show ranking order, severity badges, and owner assignment.
+4. Filter to urgency 4+ to isolate immediate actions.
+5. Generate Daily Brief + Export Digest and close with impact: faster decisions, fewer missed opportunities.
