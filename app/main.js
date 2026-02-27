@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'community-signal-board-v1';
+const FORM_DRAFT_KEY = 'community-signal-board-form-draft-v1';
 
 const TEMPLATE_PRESETS = {
   startup: {
@@ -80,6 +81,7 @@ const els = {
   emptyCopy: document.getElementById('empty-copy'),
   exportBtn: document.getElementById('export-digest'),
   briefBtn: document.getElementById('generate-brief'),
+  copyBriefBtn: document.getElementById('copy-brief'),
   tpl: document.getElementById('item-template'),
   statTotal: document.getElementById('stat-total'),
   statHigh: document.getElementById('stat-high'),
@@ -100,6 +102,44 @@ function clampInt(value, min, max, fallback) {
 
 function cleanText(value) {
   return value.trim().replace(/\s+/g, ' ');
+}
+
+function formatRelativeTime(ts) {
+  const deltaMs = Date.now() - Number(ts || 0);
+  const mins = Math.max(1, Math.floor(deltaMs / 60000));
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function loadFormDraft() {
+  try {
+    const draft = JSON.parse(localStorage.getItem(FORM_DRAFT_KEY) || '{}');
+    if (!draft || typeof draft !== 'object') return;
+    els.title.value = typeof draft.title === 'string' ? draft.title : '';
+    els.source.value = typeof draft.source === 'string' ? draft.source : '';
+    els.category.value = typeof draft.category === 'string' ? draft.category : 'Opportunity';
+    els.urgency.value = String(clampInt(draft.urgency, 1, 5, 3));
+    els.relevance.value = String(clampInt(draft.relevance, 1, 5, 3));
+    els.confidence.value = String(clampInt(draft.confidence, 1, 5, 3));
+    els.owner.value = typeof draft.owner === 'string' ? draft.owner : '';
+  } catch {
+    localStorage.removeItem(FORM_DRAFT_KEY);
+  }
+}
+
+function saveFormDraft() {
+  const draft = {
+    title: els.title.value,
+    source: els.source.value,
+    category: els.category.value,
+    urgency: els.urgency.value,
+    relevance: els.relevance.value,
+    confidence: els.confidence.value,
+    owner: els.owner.value,
+  };
+  localStorage.setItem(FORM_DRAFT_KEY, JSON.stringify(draft));
 }
 
 let toastTimer;
@@ -163,7 +203,8 @@ function render() {
   items.forEach((item) => {
     const node = els.tpl.content.cloneNode(true);
     node.querySelector('.item-title').textContent = item.title;
-    node.querySelector('.item-meta').textContent = `${item.category} • ${item.source} • owner ${item.owner} • urgency ${item.urgency} • relevance ${item.relevance} • confidence ${item.confidence}`;
+    node.querySelector('.item-meta').textContent = `${item.category} • ${item.source} • owner ${item.owner}`;
+    node.querySelector('.item-metrics').textContent = `Urgency ${item.urgency} • Relevance ${item.relevance} • Confidence ${item.confidence} • ${formatRelativeTime(item.createdAt)}`;
 
     const scoreEl = node.querySelector('.score');
     scoreEl.textContent = `Score ${score(item)}`;
@@ -245,6 +286,7 @@ function addItem(evt) {
   els.urgency.value = 3;
   els.relevance.value = 3;
   els.confidence.value = 3;
+  localStorage.removeItem(FORM_DRAFT_KEY);
   render();
   showToast('Signal added');
 }
@@ -258,6 +300,22 @@ function recommendationFor(item) {
   return 'Log next step and owner for tomorrow morning standup.';
 }
 
+function buildBriefLines(items) {
+  const date = new Date().toISOString().slice(0, 10);
+  const topItems = items.slice(0, 5);
+  const lines = [
+    `# Daily Community Brief (${date})`,
+    '',
+    '## Priority Signals',
+    ...topItems.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Owner: ${item.owner}\n   - Score: ${score(item)} (Urgency ${item.urgency} • Relevance ${item.relevance} • Confidence ${item.confidence})`),
+    '',
+    '## Recommended Actions',
+    ...topItems.map((item, idx) => `${idx + 1}. ${recommendationFor(item)}`),
+  ];
+
+  return { date, lines };
+}
+
 function generateDailyBrief() {
   const items = sortedFilteredItems();
   if (!items.length) {
@@ -265,18 +323,7 @@ function generateDailyBrief() {
     return;
   }
 
-  const date = new Date().toISOString().slice(0, 10);
-  const topItems = items.slice(0, 5);
-  const lines = [
-    `# Daily Community Brief (${date})`,
-    '',
-    '## Priority Signals',
-    ...topItems.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Score: ${score(item)} (Urgency ${item.urgency} • Relevance ${item.relevance})`),
-    '',
-    '## Recommended Actions',
-    ...topItems.map((item, idx) => `${idx + 1}. ${recommendationFor(item)}`),
-  ];
-
+  const { date, lines } = buildBriefLines(items);
   const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -285,6 +332,35 @@ function generateDailyBrief() {
   a.click();
   URL.revokeObjectURL(url);
   showToast('Daily brief generated');
+}
+
+async function copyTopActions() {
+  const items = sortedFilteredItems();
+  if (!items.length) {
+    showToast('No signals available to copy');
+    return;
+  }
+
+  const text = buildBriefLines(items).lines.join('\n');
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      showToast('Top actions copied');
+      return;
+    }
+  } catch {
+    // fallback below
+  }
+
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  showToast('Top actions copied');
 }
 
 function exportDigest() {
@@ -312,6 +388,7 @@ function exportDigest() {
 }
 
 els.form.addEventListener('submit', addItem);
+els.form.addEventListener('input', saveFormDraft);
 els.search.addEventListener('input', (e) => {
   state.search = e.target.value;
   render();
@@ -337,6 +414,8 @@ els.clearFilters.addEventListener('click', () => {
 els.applyTemplate?.addEventListener('click', applyTemplatePreset);
 els.exportBtn.addEventListener('click', exportDigest);
 els.briefBtn.addEventListener('click', generateDailyBrief);
+els.copyBriefBtn?.addEventListener('click', copyTopActions);
 
+loadFormDraft();
 persist();
 render();

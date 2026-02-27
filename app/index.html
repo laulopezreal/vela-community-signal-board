@@ -100,6 +100,7 @@
             </select>
             <button id="clear-filters" type="button" class="btn-muted">Clear</button>
             <button id="generate-brief" type="button" class="btn-muted">Generate Daily Brief</button>
+            <button id="copy-brief" type="button" class="btn-muted">Copy Top Actions</button>
             <button id="export-digest" type="button">Export Digest</button>
           </div>
         </div>
@@ -113,9 +114,10 @@
 
     <template id="item-template">
       <li class="signal-item">
-        <div>
+        <div class="item-main">
           <h3 class="item-title"></h3>
           <p class="item-meta"></p>
+          <p class="item-metrics"></p>
         </div>
         <div class="item-right">
           <span class="score"></span>

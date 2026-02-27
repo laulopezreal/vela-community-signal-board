@@ -11,6 +11,7 @@ A lightweight app that helps small communities capture scattered updates, rank w
 - Filters by category and urgency to focus fast
 - Applies community templates (startup, OSS, local org) for faster, consistent capture
 - Generates a daily brief markdown with action recommendations
+- Copies top actions to clipboard for fast sharing in chat/email
 - Exports a markdown digest for async sharing
 - Safely recovers from corrupted localStorage data without breaking app load
 
