@@ -18,7 +18,7 @@
 ## Feature Mandate Upgrades
 - [x] Community templates (startup / OSS / local org)
 - [x] Daily brief generator with action recommendations
-- [ ] Signal confidence + owner assignment
+- [x] Signal confidence + owner assignment
 
 ## Submission Assets
 - [ ] Project link/repo live and shareable

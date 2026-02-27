@@ -6,9 +6,8 @@ Weekend challenge MVP for builder and operator communities.
 A lightweight app that helps small communities capture scattered updates, rank what matters now, and export a daily action digest.
 
 ## What it does
-- Captures high-signal updates manually (title, source, urgency, category, relevance)
-- Includes one-click community presets (startup, OSS, local org)
-- Ranks updates with a transparent scoring formula: `urgency * 2 + relevance`
+- Captures high-signal updates manually (title, source, urgency, category, relevance, confidence, owner)
+- Ranks updates with a transparent scoring formula: `urgency * 2 + relevance + confidence`
 - Filters by category and urgency to focus fast
 - Generates a daily brief markdown with action recommendations
 - Exports a markdown digest for async sharing

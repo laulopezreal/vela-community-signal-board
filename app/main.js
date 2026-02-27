@@ -1,29 +1,5 @@
 const STORAGE_KEY = 'community-signal-board-v1';
 
-const COMMUNITY_TEMPLATES = {
-  startup: {
-    title: 'Pilot invite: founder GTM working session',
-    source: 'Founder Slack',
-    category: 'Opportunity',
-    urgency: 4,
-    relevance: 5,
-  },
-  oss: {
-    title: 'Maintainer call: contributors needed for release hardening',
-    source: 'GitHub Discussions',
-    category: 'Tool',
-    urgency: 3,
-    relevance: 4,
-  },
-  'local-org': {
-    title: 'City tech meetup partnership slot opened',
-    source: 'Community newsletter',
-    category: 'Event',
-    urgency: 4,
-    relevance: 4,
-  },
-};
-
 const state = {
   items: JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'),
   filterCategory: 'all',
@@ -38,8 +14,8 @@ const els = {
   category: document.getElementById('category'),
   urgency: document.getElementById('urgency'),
   relevance: document.getElementById('relevance'),
-  template: document.getElementById('community-template'),
-  applyTemplate: document.getElementById('apply-template'),
+  confidence: document.getElementById('confidence'),
+  owner: document.getElementById('owner'),
   search: document.getElementById('search'),
   filterCategory: document.getElementById('filter-category'),
   filterUrgency: document.getElementById('filter-urgency'),
@@ -52,11 +28,12 @@ const els = {
   statTotal: document.getElementById('stat-total'),
   statHigh: document.getElementById('stat-high'),
   statAvg: document.getElementById('stat-avg'),
+  statAssigned: document.getElementById('stat-assigned'),
   toast: document.getElementById('toast'),
 };
 
 function score(item) {
-  return item.urgency * 2 + item.relevance;
+  return item.urgency * 2 + item.relevance + item.confidence;
 }
 
 function clampInt(value, min, max, fallback) {
@@ -98,10 +75,12 @@ function renderStats() {
   const total = state.items.length;
   const highUrgency = state.items.filter((x) => x.urgency >= 4).length;
   const avgScore = total ? (state.items.reduce((acc, x) => acc + score(x), 0) / total).toFixed(1) : '0.0';
+  const assigned = state.items.filter((x) => x.owner && x.owner !== 'Unassigned').length;
 
   if (els.statTotal) els.statTotal.textContent = String(total);
   if (els.statHigh) els.statHigh.textContent = String(highUrgency);
   if (els.statAvg) els.statAvg.textContent = String(avgScore);
+  if (els.statAssigned) els.statAssigned.textContent = String(assigned);
 }
 
 function render() {
@@ -112,7 +91,7 @@ function render() {
   items.forEach((item) => {
     const node = els.tpl.content.cloneNode(true);
     node.querySelector('.item-title').textContent = item.title;
-    node.querySelector('.item-meta').textContent = `${item.category} • ${item.source} • urgency ${item.urgency} • relevance ${item.relevance}`;
+    node.querySelector('.item-meta').textContent = `${item.category} • ${item.source} • owner ${item.owner} • urgency ${item.urgency} • relevance ${item.relevance} • confidence ${item.confidence}`;
     node.querySelector('.score').textContent = `Score ${score(item)}`;
     node.querySelector('.delete').addEventListener('click', () => {
       state.items = state.items.filter((x) => x.id !== item.id);
@@ -126,27 +105,6 @@ function render() {
   renderStats();
 }
 
-function applyTemplatePreset() {
-  const templateId = els.template.value;
-  if (!templateId) {
-    showToast('Pick a template first');
-    return;
-  }
-
-  const template = COMMUNITY_TEMPLATES[templateId];
-  if (!template) {
-    showToast('Template not found');
-    return;
-  }
-
-  els.title.value = template.title;
-  els.source.value = template.source;
-  els.category.value = template.category;
-  els.urgency.value = template.urgency;
-  els.relevance.value = template.relevance;
-  showToast('Template applied');
-}
-
 function addItem(evt) {
   evt.preventDefault();
   const item = {
@@ -156,6 +114,8 @@ function addItem(evt) {
     category: els.category.value,
     urgency: clampInt(els.urgency.value, 1, 5, 3),
     relevance: clampInt(els.relevance.value, 1, 5, 3),
+    confidence: clampInt(els.confidence.value, 1, 5, 3),
+    owner: cleanText(els.owner.value) || 'Unassigned',
     createdAt: Date.now(),
   };
 
@@ -178,6 +138,7 @@ function addItem(evt) {
   els.form.reset();
   els.urgency.value = 3;
   els.relevance.value = 3;
+  els.confidence.value = 3;
   render();
   showToast('Signal added');
 }
@@ -231,7 +192,7 @@ function exportDigest() {
   const lines = [
     `# Community Signal Digest (${date})`,
     '',
-    ...items.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Urgency: ${item.urgency} | Relevance: ${item.relevance} | Score: ${score(item)}`),
+    ...items.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Owner: ${item.owner}\n   - Urgency: ${item.urgency} | Relevance: ${item.relevance} | Confidence: ${item.confidence} | Score: ${score(item)}`),
   ];
 
   const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' });
@@ -245,7 +206,6 @@ function exportDigest() {
 }
 
 els.form.addEventListener('submit', addItem);
-els.applyTemplate.addEventListener('click', applyTemplatePreset);
 els.search.addEventListener('input', (e) => {
   state.search = e.target.value;
   render();
