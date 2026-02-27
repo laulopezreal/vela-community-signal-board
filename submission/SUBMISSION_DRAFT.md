@@ -34,7 +34,7 @@ A lightweight app that captures updates quickly, ranks them transparently, filte
 5. Close with impact: fewer missed opportunities, faster shared awareness.
 
 ## Project Link
-- Repo URL: `<ADD_REPO_URL>`
+- Repo URL: `https://github.com/laulopezreal/vela-community-signal-board`
 - Demo screenshot: `/home/lauureal/.openclaw/media/browser/39817a38-936e-4f0b-8784-92077db4f6ce.png`
 
 ## Run Instructions
