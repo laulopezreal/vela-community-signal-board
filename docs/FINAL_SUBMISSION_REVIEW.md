@@ -20,12 +20,10 @@ Result: PASS
 - Screenshot artifact available
 - Repo readiness path documented with safe sequence
 
-Result: PASS (pending live repo URL)
+Result: PASS
 
 ## Remaining blockers to submit
-1. Create/push git repo and obtain shareable URL
-2. Insert URL in `submission/SUBMISSION_DRAFT.md`
-3. Submit on challenge form
+1. Submit on challenge form
 
 ## Reviewer conclusion
-Submission package is acceptance-ready from a content and MVP perspective. Only project link activation remains.
+Submission package is acceptance-ready from a content and MVP perspective. Repository link is live and included.

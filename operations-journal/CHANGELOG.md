@@ -24,3 +24,27 @@
 - [feature] Added signal confidence scoring and owner assignment for accountability.
 - [docs] Updated README, TEST_REPORT, and checklist coverage for all 3 mandated features.
 - [rollback] Revert feature commits if rollback is required.
+- [style] Removed gradient page background and decorative glow layers per Lau preference; shifted to clean professional dark surface.
+- [repo] Opened and merged PR #4 to main: `style: remove gradient background and keep clean professional UI`.
+- [rollback] Revert PR #4 merge commit on main if needed.
+- [fix] Implemented template preset behavior in `app/main.js` and wired Apply preset action.
+- [reliability] Added safe localStorage load/sanitization path to prevent startup crashes on malformed data.
+- [reliability] Added UUID fallback for environments without `crypto.randomUUID`.
+- [verify] Ran `node --check app/main.js` and sandbox smoke test for corrupted storage handling.
+- [docs] Updated `README.md` and `docs/TEST_REPORT.md` for new functional and reliability coverage.
+- [style] Implemented dedicated style loop batch in `app/styles.css` focused on hierarchy, component consistency, and mobile polish.
+- [a11y] Added consistent `:focus-visible` ring behavior for form controls and action buttons.
+- [verify] Re-ran `node --check app/main.js`, local HTTP smoke check, and browser snapshot sanity pass after style changes.
+- [docs] Added `docs/STYLE_LOOP.md`; updated README, test report, and submission checklist with style-loop rationale and constraints.
+- [rollback] Revert `app/styles.css`, `docs/STYLE_LOOP.md`, and related docs entries to restore previous visual baseline.
+- [style] Implemented style loop batch 2: context-aware empty state and score severity badges (low/medium/high/critical).
+- [ux] Added no-results guidance when filters/search hide all existing signals.
+- [verify] Re-ran `node --check app/main.js` and local HTTP smoke check after batch 2.
+- [docs] Updated `docs/STYLE_LOOP.md`, `docs/TEST_REPORT.md`, and `Important.agent.md` with batch-2 coverage and next-batch plan.
+- [rollback] Revert `app/index.html`, `app/main.js`, and `app/styles.css` to roll back batch-2 visual/UX changes.
+- [style] Implemented style loop batch 3: tighter high-density toolbar spacing and compact control sizing for 900-1280px laptop widths.
+- [ux] Improved destructive-action clarity with danger-outline delete styling and icon cue in crowded signal lists.
+- [a11y] Added per-signal delete `title`/`aria-label` text for clearer assistive context.
+- [verify] Re-ran `node --check app/main.js` and local ephemeral-port HTTP smoke check.
+- [docs] Updated `docs/STYLE_LOOP.md`, `docs/TEST_REPORT.md`, `Important.agent.md`, and `memory/2026-02-27.md` for batch-3 continuity.
+- [rollback] Revert `app/styles.css` and `app/main.js` to undo style-loop batch 3.

@@ -2,11 +2,13 @@
 
 ## Active State
 - MVP app implemented and verified: Community Signal Board (manual ingest, ranking, filters, digest export).
-- Screenshot asset captured, final review completed, and submission docs tightened.
-- Only remaining blocker is live project link/repo URL insertion.
+- Reliability batch shipped: template presets now work, storage parsing hardened, and ID generation fallback added.
+- Dedicated style loop remains active in parallel with functional loops.
+- Style batch 1 + batch 2 + batch 3 completed in `app/styles.css` and `app/main.js`: hierarchy/readability, component consistency, mobile polish, context-aware empty states, score severity badges, compact toolbar density tuning, and clearer destructive actions.
+- Constraint status: no gradient page background introduced; no submit/freeze action taken.
 
 ## Immediate Priority
-Activate shareable repo link and submit.
+Continue low-risk winner-mode polish and readiness validation while waiting for Lau approval on live-link activation and final submit.
 
 ## First Executable Step
-Follow `submission/REPO_READINESS.md` to create/push repo, paste URL into `submission/SUBMISSION_DRAFT.md`, then submit form.
+Run one more contained style/reliability micro-batch (metadata readability or optional density toggle) and re-validate (`node --check` + smoke check).

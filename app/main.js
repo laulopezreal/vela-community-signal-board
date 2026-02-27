@@ -1,7 +1,60 @@
 const STORAGE_KEY = 'community-signal-board-v1';
 
+const TEMPLATE_PRESETS = {
+  startup: {
+    source: 'Founder Slack',
+    category: 'Opportunity',
+    urgency: 4,
+    relevance: 4,
+    confidence: 3,
+    owner: 'Growth lead',
+  },
+  oss: {
+    source: 'GitHub + Discord',
+    category: 'Tool',
+    urgency: 3,
+    relevance: 5,
+    confidence: 4,
+    owner: 'Maintainer on-call',
+  },
+  'local-org': {
+    source: 'Meetup + WhatsApp',
+    category: 'Event',
+    urgency: 4,
+    relevance: 3,
+    confidence: 3,
+    owner: 'Community manager',
+  },
+};
+
+function safeLoadItems() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = JSON.parse(raw || '[]');
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .map((item) => ({
+        id: typeof item.id === 'string' ? item.id : `legacy-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        title: cleanText(String(item.title || '')),
+        source: cleanText(String(item.source || '')),
+        category: ['Opportunity', 'Funding', 'Event', 'Tool', 'Hiring'].includes(item.category)
+          ? item.category
+          : 'Opportunity',
+        urgency: clampInt(item.urgency, 1, 5, 3),
+        relevance: clampInt(item.relevance, 1, 5, 3),
+        confidence: clampInt(item.confidence, 1, 5, 3),
+        owner: cleanText(String(item.owner || '')) || 'Unassigned',
+        createdAt: Number.isFinite(Number(item.createdAt)) ? Number(item.createdAt) : Date.now(),
+      }))
+      .filter((item) => item.title && item.source);
+  } catch {
+    return [];
+  }
+}
+
 const state = {
-  items: JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'),
+  items: safeLoadItems(),
   filterCategory: 'all',
   filterUrgency: 0,
   search: '',
@@ -16,12 +69,15 @@ const els = {
   relevance: document.getElementById('relevance'),
   confidence: document.getElementById('confidence'),
   owner: document.getElementById('owner'),
+  template: document.getElementById('community-template'),
+  applyTemplate: document.getElementById('apply-template'),
   search: document.getElementById('search'),
   filterCategory: document.getElementById('filter-category'),
   filterUrgency: document.getElementById('filter-urgency'),
   clearFilters: document.getElementById('clear-filters'),
   list: document.getElementById('signal-list'),
   empty: document.getElementById('empty'),
+  emptyCopy: document.getElementById('empty-copy'),
   exportBtn: document.getElementById('export-digest'),
   briefBtn: document.getElementById('generate-brief'),
   tpl: document.getElementById('item-template'),
@@ -83,17 +139,40 @@ function renderStats() {
   if (els.statAssigned) els.statAssigned.textContent = String(assigned);
 }
 
+function scoreBand(item) {
+  const total = score(item);
+  if (total >= 16) return 'critical';
+  if (total >= 13) return 'high';
+  if (total >= 10) return 'medium';
+  return 'low';
+}
+
 function render() {
   const items = sortedFilteredItems();
   els.list.innerHTML = '';
-  els.empty.style.display = items.length ? 'none' : 'block';
+
+  const showEmpty = !items.length;
+  els.empty.style.display = showEmpty ? 'block' : 'none';
+  if (showEmpty && els.emptyCopy) {
+    const noItems = state.items.length === 0;
+    els.emptyCopy.textContent = noItems
+      ? 'Add your first high-signal update to start ranking opportunities.'
+      : 'No signals match the current filters. Clear filters or adjust search terms.';
+  }
 
   items.forEach((item) => {
     const node = els.tpl.content.cloneNode(true);
     node.querySelector('.item-title').textContent = item.title;
     node.querySelector('.item-meta').textContent = `${item.category} • ${item.source} • owner ${item.owner} • urgency ${item.urgency} • relevance ${item.relevance} • confidence ${item.confidence}`;
-    node.querySelector('.score').textContent = `Score ${score(item)}`;
-    node.querySelector('.delete').addEventListener('click', () => {
+
+    const scoreEl = node.querySelector('.score');
+    scoreEl.textContent = `Score ${score(item)}`;
+    scoreEl.classList.add(`score-${scoreBand(item)}`);
+
+    const deleteBtn = node.querySelector('.delete');
+    deleteBtn.title = `Delete signal: ${item.title}`;
+    deleteBtn.setAttribute('aria-label', `Delete signal: ${item.title}`);
+    deleteBtn.addEventListener('click', () => {
       state.items = state.items.filter((x) => x.id !== item.id);
       persist();
       render();
@@ -105,10 +184,37 @@ function render() {
   renderStats();
 }
 
+function makeId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `id-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function applyTemplatePreset() {
+  const key = els.template?.value;
+  if (!key) {
+    showToast('Select a template first');
+    return;
+  }
+
+  const preset = TEMPLATE_PRESETS[key];
+  if (!preset) {
+    showToast('Template not found');
+    return;
+  }
+
+  els.source.value = preset.source;
+  els.category.value = preset.category;
+  els.urgency.value = String(preset.urgency);
+  els.relevance.value = String(preset.relevance);
+  els.confidence.value = String(preset.confidence);
+  els.owner.value = preset.owner;
+  showToast('Template applied');
+}
+
 function addItem(evt) {
   evt.preventDefault();
   const item = {
-    id: crypto.randomUUID(),
+    id: makeId(),
     title: cleanText(els.title.value),
     source: cleanText(els.source.value),
     category: els.category.value,
@@ -228,7 +334,9 @@ els.clearFilters.addEventListener('click', () => {
   render();
   showToast('Filters reset');
 });
+els.applyTemplate?.addEventListener('click', applyTemplatePreset);
 els.exportBtn.addEventListener('click', exportDigest);
 els.briefBtn.addEventListener('click', generateDailyBrief);
 
+persist();
 render();

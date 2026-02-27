@@ -16,6 +16,7 @@ Also read:
 - MEMORY.md
 - ops/VELA_WEEKEND_SCOPE.md
 - ops/VELA_SUBMISSION_CHECKLIST.md
+- ops/VELA_EXECUTION_GOVERNANCE.md
 - memory/YYYY-MM-DD.md (today and yesterday)
 
 ## Operating Rules

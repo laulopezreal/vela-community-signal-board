@@ -20,6 +20,15 @@
 - [x] Daily brief generator with action recommendations
 - [x] Signal confidence + owner assignment
 
+## Dedicated Style Loop (parallel track)
+- [x] Visual hierarchy pass (typography rhythm, spacing, alignment)
+- [x] Component consistency pass (buttons, cards, controls, states, focus-visible rings)
+- [x] Mobile polish pass (stacking behavior, spacing compression, toast safety on small screens)
+- [x] Empty-state and no-results clarity pass (context-aware guidance copy)
+- [x] Score severity visual coding pass (low/medium/high/critical contrast-safe badges)
+- [x] Constraint check: no gradient page background
+- [x] Constraint check: no submission/freeze action taken
+
 ## Submission Assets
 - [ ] Project link/repo live and shareable
 - [x] Repo readiness path documented (`submission/REPO_READINESS.md`)
