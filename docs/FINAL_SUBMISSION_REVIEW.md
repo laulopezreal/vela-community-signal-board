@@ -15,8 +15,9 @@ Result: PASS
 Result: PASS
 
 ## Submission package quality
-- README tightened with one-line pitch, assets, and 90-second narrative
-- Submission copy tightened for clarity and challenge fit
+- README tightened with one-line pitch, 30-second opening narrative, and deterministic demo flow
+- Submission copy tightened for clarity, challenge fit, and judge objection handling
+- Deterministic proof artifact added (`docs/DEMO_PROOF_ARTIFACT.md`)
 - Screenshot artifact available
 - Repo readiness path documented with safe sequence
 
@@ -26,4 +27,4 @@ Result: PASS
 1. Submit on challenge form
 
 ## Reviewer conclusion
-Submission package is acceptance-ready from a content and MVP perspective. Repository link is live and included.
+Submission package is acceptance-ready from a content and MVP perspective. Repository status: [LINK_STATUS] (Verified via VELA_SUBMISSION_CHECKLIST:33).

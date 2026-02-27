@@ -30,9 +30,14 @@
 - [x] Constraint check: no submission/freeze action taken
 
 ## Submission Assets
-- [ ] Project link/repo live and shareable
+- [x] Project link/repo live and shareable (verified via `gh repo view laulopezreal/vela-community-signal-board`)
 - [x] Repo readiness path documented (`submission/REPO_READINESS.md`)
 - [x] Demo narrative drafted
+- [x] 30-second opening narrative tightened
+- [x] Deterministic demo path added (Load Demo Scenario)
+- [x] Demo preflight path added (Run Health Check)
+- [x] Proof artifact documented (`docs/DEMO_PROOF_ARTIFACT.md`)
+- [x] Judge objection handling prepared (`submission/SUBMISSION_DRAFT.md`)
 - [x] Submission form fields prepared
 - [x] Final review done before submit (`docs/FINAL_SUBMISSION_REVIEW.md`)
 - [ ] Submitted before deadline

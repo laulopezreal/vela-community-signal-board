@@ -14,6 +14,8 @@
 - [x] Urgency filter updates list
 - [x] Delete item removes record from list and storage
 - [x] Template preset apply fills form defaults (source/category/urgency/relevance/confidence/owner)
+- [x] Load Demo Scenario injects deterministic fixture and resets filters/search
+- [x] Run Health Check reports pass/fail status for core runtime readiness
 - [x] Generate Daily Brief exports markdown with action recommendations
 - [x] Export digest triggers markdown file download
 - [x] Corrupted localStorage payload does not crash startup (sandbox smoke test)

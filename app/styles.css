@@ -252,7 +252,7 @@ button:disabled { opacity: .65; cursor: not-allowed; }
 
 .filters {
   display: grid;
-  grid-template-columns: minmax(220px, 1.5fr) repeat(2, minmax(140px, 1fr)) auto auto auto;
+  grid-template-columns: minmax(220px, 1.4fr) repeat(2, minmax(132px, 1fr)) auto auto auto auto;
   gap: .45rem;
   width: 100%;
 }
@@ -264,6 +264,35 @@ button:disabled { opacity: .65; cursor: not-allowed; }
 }
 
 .btn-muted:hover { background: #1a2a4a; }
+
+.health-status {
+  margin: .78rem 0 0;
+  font-size: .84rem;
+  border: 1px solid var(--border);
+  background: rgba(20, 32, 59, 0.38);
+  color: #dbe7ff;
+  border-radius: 999px;
+  display: inline-block;
+  padding: .28rem .62rem;
+}
+
+.health-status.is-pass {
+  border-color: rgba(52, 211, 153, 0.45);
+  color: #d6ffe9;
+  background: rgba(31, 138, 91, 0.2);
+}
+
+.health-status.is-warn {
+  border-color: rgba(251, 191, 36, 0.45);
+  color: #fff0cc;
+  background: rgba(245, 158, 11, 0.2);
+}
+
+.health-status.is-fail {
+  border-color: rgba(248, 113, 113, 0.55);
+  color: #ffd7d7;
+  background: rgba(220, 38, 38, 0.2);
+}
 
 .signal-list {
   list-style: none;
@@ -290,10 +319,21 @@ button:disabled { opacity: .65; cursor: not-allowed; }
   line-height: 1.3;
 }
 
+.item-main {
+  min-width: 0;
+}
+
 .item-meta {
   margin: .32rem 0 0;
+  color: #c4d3f6;
+  font-size: .84rem;
+  font-weight: 600;
+}
+
+.item-metrics {
+  margin: .2rem 0 0;
   color: var(--muted);
-  font-size: .89rem;
+  font-size: .82rem;
 }
 
 .item-right {
@@ -405,7 +445,7 @@ button:disabled { opacity: .65; cursor: not-allowed; }
 
 @media (min-width: 900px) and (max-width: 1280px) {
   .filters {
-    grid-template-columns: minmax(190px, 1.4fr) repeat(2, minmax(128px, 1fr)) auto auto auto;
+    grid-template-columns: minmax(170px, 1.2fr) repeat(2, minmax(118px, 1fr)) auto auto auto auto;
     gap: .4rem;
   }
 

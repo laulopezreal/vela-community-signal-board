@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'community-signal-board-v1';
+const FORM_DRAFT_KEY = 'community-signal-board-form-draft-v1';
 
 const TEMPLATE_PRESETS = {
   startup: {
@@ -26,6 +27,49 @@ const TEMPLATE_PRESETS = {
     owner: 'Community manager',
   },
 };
+
+const DEMO_SCENARIO_ITEMS = [
+  {
+    title: 'Grant call closes tonight for community tooling',
+    source: 'Email digest',
+    category: 'Funding',
+    urgency: 5,
+    relevance: 4,
+    confidence: 4,
+    owner: 'Ops lead',
+    createdAt: Date.parse('2026-02-27T09:10:00Z'),
+  },
+  {
+    title: 'AI safety workshop requests 2 startup mentors',
+    source: 'Founder Slack',
+    category: 'Opportunity',
+    urgency: 4,
+    relevance: 5,
+    confidence: 4,
+    owner: 'Partnerships',
+    createdAt: Date.parse('2026-02-27T08:50:00Z'),
+  },
+  {
+    title: 'Partner community opening senior ML role',
+    source: 'WhatsApp group',
+    category: 'Hiring',
+    urgency: 4,
+    relevance: 4,
+    confidence: 3,
+    owner: 'Talent lead',
+    createdAt: Date.parse('2026-02-27T08:20:00Z'),
+  },
+  {
+    title: 'Open-source observability tool launches beta',
+    source: 'X/Twitter',
+    category: 'Tool',
+    urgency: 3,
+    relevance: 4,
+    confidence: 3,
+    owner: 'Tech lead',
+    createdAt: Date.parse('2026-02-27T07:50:00Z'),
+  },
+];
 
 function safeLoadItems() {
   try {
@@ -75,11 +119,15 @@ const els = {
   filterCategory: document.getElementById('filter-category'),
   filterUrgency: document.getElementById('filter-urgency'),
   clearFilters: document.getElementById('clear-filters'),
+  loadDemo: document.getElementById('load-demo'),
   list: document.getElementById('signal-list'),
   empty: document.getElementById('empty'),
   emptyCopy: document.getElementById('empty-copy'),
   exportBtn: document.getElementById('export-digest'),
   briefBtn: document.getElementById('generate-brief'),
+  copyBriefBtn: document.getElementById('copy-brief'),
+  runHealthBtn: document.getElementById('run-health-check'),
+  healthStatus: document.getElementById('health-status'),
   tpl: document.getElementById('item-template'),
   statTotal: document.getElementById('stat-total'),
   statHigh: document.getElementById('stat-high'),
@@ -100,6 +148,44 @@ function clampInt(value, min, max, fallback) {
 
 function cleanText(value) {
   return value.trim().replace(/\s+/g, ' ');
+}
+
+function formatRelativeTime(ts) {
+  const deltaMs = Date.now() - Number(ts || 0);
+  const mins = Math.max(1, Math.floor(deltaMs / 60000));
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function loadFormDraft() {
+  try {
+    const draft = JSON.parse(localStorage.getItem(FORM_DRAFT_KEY) || '{}');
+    if (!draft || typeof draft !== 'object') return;
+    els.title.value = typeof draft.title === 'string' ? draft.title : '';
+    els.source.value = typeof draft.source === 'string' ? draft.source : '';
+    els.category.value = typeof draft.category === 'string' ? draft.category : 'Opportunity';
+    els.urgency.value = String(clampInt(draft.urgency, 1, 5, 3));
+    els.relevance.value = String(clampInt(draft.relevance, 1, 5, 3));
+    els.confidence.value = String(clampInt(draft.confidence, 1, 5, 3));
+    els.owner.value = typeof draft.owner === 'string' ? draft.owner : '';
+  } catch {
+    localStorage.removeItem(FORM_DRAFT_KEY);
+  }
+}
+
+function saveFormDraft() {
+  const draft = {
+    title: els.title.value,
+    source: els.source.value,
+    category: els.category.value,
+    urgency: els.urgency.value,
+    relevance: els.relevance.value,
+    confidence: els.confidence.value,
+    owner: els.owner.value,
+  };
+  localStorage.setItem(FORM_DRAFT_KEY, JSON.stringify(draft));
 }
 
 let toastTimer;
@@ -163,7 +249,8 @@ function render() {
   items.forEach((item) => {
     const node = els.tpl.content.cloneNode(true);
     node.querySelector('.item-title').textContent = item.title;
-    node.querySelector('.item-meta').textContent = `${item.category} • ${item.source} • owner ${item.owner} • urgency ${item.urgency} • relevance ${item.relevance} • confidence ${item.confidence}`;
+    node.querySelector('.item-meta').textContent = `${item.category} • ${item.source} • owner ${item.owner}`;
+    node.querySelector('.item-metrics').textContent = `Urgency ${item.urgency} • Relevance ${item.relevance} • Confidence ${item.confidence} • ${formatRelativeTime(item.createdAt)}`;
 
     const scoreEl = node.querySelector('.score');
     scoreEl.textContent = `Score ${score(item)}`;
@@ -211,6 +298,25 @@ function applyTemplatePreset() {
   showToast('Template applied');
 }
 
+function loadDemoScenario() {
+  state.items = DEMO_SCENARIO_ITEMS.map((item, idx) => ({
+    ...item,
+    id: `demo-${idx + 1}`,
+  }));
+
+  state.search = '';
+  state.filterCategory = 'all';
+  state.filterUrgency = 0;
+  els.search.value = '';
+  els.filterCategory.value = 'all';
+  els.filterUrgency.value = '0';
+
+  localStorage.removeItem(FORM_DRAFT_KEY);
+  persist();
+  render();
+  showToast('Demo scenario loaded');
+}
+
 function addItem(evt) {
   evt.preventDefault();
   const item = {
@@ -245,6 +351,7 @@ function addItem(evt) {
   els.urgency.value = 3;
   els.relevance.value = 3;
   els.confidence.value = 3;
+  localStorage.removeItem(FORM_DRAFT_KEY);
   render();
   showToast('Signal added');
 }
@@ -258,6 +365,22 @@ function recommendationFor(item) {
   return 'Log next step and owner for tomorrow morning standup.';
 }
 
+function buildBriefLines(items) {
+  const date = new Date().toISOString().slice(0, 10);
+  const topItems = items.slice(0, 5);
+  const lines = [
+    `# Daily Community Brief (${date})`,
+    '',
+    '## Priority Signals',
+    ...topItems.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Owner: ${item.owner}\n   - Score: ${score(item)} (Urgency ${item.urgency} • Relevance ${item.relevance} • Confidence ${item.confidence})`),
+    '',
+    '## Recommended Actions',
+    ...topItems.map((item, idx) => `${idx + 1}. ${recommendationFor(item)}`),
+  ];
+
+  return { date, lines };
+}
+
 function generateDailyBrief() {
   const items = sortedFilteredItems();
   if (!items.length) {
@@ -265,18 +388,7 @@ function generateDailyBrief() {
     return;
   }
 
-  const date = new Date().toISOString().slice(0, 10);
-  const topItems = items.slice(0, 5);
-  const lines = [
-    `# Daily Community Brief (${date})`,
-    '',
-    '## Priority Signals',
-    ...topItems.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Score: ${score(item)} (Urgency ${item.urgency} • Relevance ${item.relevance})`),
-    '',
-    '## Recommended Actions',
-    ...topItems.map((item, idx) => `${idx + 1}. ${recommendationFor(item)}`),
-  ];
-
+  const { date, lines } = buildBriefLines(items);
   const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -285,6 +397,35 @@ function generateDailyBrief() {
   a.click();
   URL.revokeObjectURL(url);
   showToast('Daily brief generated');
+}
+
+async function copyTopActions() {
+  const items = sortedFilteredItems();
+  if (!items.length) {
+    showToast('No signals available to copy');
+    return;
+  }
+
+  const text = buildBriefLines(items).lines.join('\n');
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      showToast('Top actions copied');
+      return;
+    }
+  } catch {
+    // fallback below
+  }
+
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  showToast('Top actions copied');
 }
 
 function exportDigest() {
@@ -311,7 +452,42 @@ function exportDigest() {
   showToast('Digest exported');
 }
 
+function setHealthStatus(text, level = 'pass') {
+  if (!els.healthStatus) return;
+  els.healthStatus.textContent = text;
+  els.healthStatus.classList.remove('is-pass', 'is-warn', 'is-fail');
+  els.healthStatus.classList.add(`is-${level}`);
+}
+
+function runHealthCheck() {
+  const checks = [];
+
+  try {
+    const key = '__csb_health__';
+    localStorage.setItem(key, 'ok');
+    const ok = localStorage.getItem(key) === 'ok';
+    localStorage.removeItem(key);
+    checks.push({ name: 'Storage roundtrip', ok });
+  } catch {
+    checks.push({ name: 'Storage roundtrip', ok: false });
+  }
+
+  const demoTop = [...DEMO_SCENARIO_ITEMS].sort((a, b) => score(b) - score(a) || b.createdAt - a.createdAt)[0]?.title;
+  checks.push({ name: 'Deterministic demo ranking', ok: demoTop === 'Grant call closes tonight for community tooling' });
+
+  checks.push({ name: 'Export capability', ok: typeof Blob !== 'undefined' && typeof URL?.createObjectURL === 'function' });
+  checks.push({ name: 'Core crypto/id support', ok: !!(globalThis.crypto?.randomUUID || globalThis.crypto?.getRandomValues) });
+
+  const passCount = checks.filter((x) => x.ok).length;
+  const corePass = passCount === checks.length;
+  const level = corePass ? 'pass' : passCount >= checks.length - 1 ? 'warn' : 'fail';
+
+  setHealthStatus(`Health ${corePass ? 'PASS' : 'ATTENTION'} • ${passCount}/${checks.length} checks passed`, level);
+  showToast(corePass ? 'Health check passed' : 'Health check found issues');
+}
+
 els.form.addEventListener('submit', addItem);
+els.form.addEventListener('input', saveFormDraft);
 els.search.addEventListener('input', (e) => {
   state.search = e.target.value;
   render();
@@ -335,8 +511,12 @@ els.clearFilters.addEventListener('click', () => {
   showToast('Filters reset');
 });
 els.applyTemplate?.addEventListener('click', applyTemplatePreset);
+els.loadDemo?.addEventListener('click', loadDemoScenario);
 els.exportBtn.addEventListener('click', exportDigest);
 els.briefBtn.addEventListener('click', generateDailyBrief);
+els.copyBriefBtn?.addEventListener('click', copyTopActions);
+els.runHealthBtn?.addEventListener('click', runHealthCheck);
 
+loadFormDraft();
 persist();
 render();

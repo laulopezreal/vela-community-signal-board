@@ -99,10 +99,14 @@
               <option value="5">Urgency 5 only</option>
             </select>
             <button id="clear-filters" type="button" class="btn-muted">Clear</button>
+            <button id="load-demo" type="button" class="btn-muted">Load Demo Scenario</button>
             <button id="generate-brief" type="button" class="btn-muted">Generate Daily Brief</button>
+            <button id="copy-brief" type="button" class="btn-muted">Copy Top Actions</button>
+            <button id="run-health-check" type="button" class="btn-muted">Run Health Check</button>
             <button id="export-digest" type="button">Export Digest</button>
           </div>
         </div>
+        <p id="health-status" class="health-status" role="status" aria-live="polite">Health not run in this session.</p>
         <ul id="signal-list" class="signal-list"></ul>
         <div id="empty" class="empty" role="status" aria-live="polite">
           <p class="empty-title">No signals yet</p>
@@ -113,9 +117,10 @@
 
     <template id="item-template">
       <li class="signal-item">
-        <div>
+        <div class="item-main">
           <h3 class="item-title"></h3>
           <p class="item-meta"></p>
+          <p class="item-metrics"></p>
         </div>
         <div class="item-right">
           <span class="score"></span>
