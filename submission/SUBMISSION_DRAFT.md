@@ -17,7 +17,7 @@ A lightweight app that captures updates quickly, ranks them transparently, suppo
 
 ## Core Features
 - Manual signal ingestion (title, source, urgency, category, relevance)
-- Deterministic ranking (`urgency * 2 + relevance`)
+- Deterministic ranking (`urgency * 2 + relevance + confidence`)
 - Live search + dashboard filtering (category + urgency) + clear reset
 - Reliability guards (duplicate prevention, score clamping, empty-export prevention)
 - Markdown digest export for async distribution

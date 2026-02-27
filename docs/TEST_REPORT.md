@@ -13,8 +13,18 @@
 - [x] Category filter updates list
 - [x] Urgency filter updates list
 - [x] Delete item removes record from list and storage
+- [x] Template preset apply fills form defaults (source/category/urgency/relevance/confidence/owner)
 - [x] Generate Daily Brief exports markdown with action recommendations
 - [x] Export digest triggers markdown file download
+- [x] Corrupted localStorage payload does not crash startup (sandbox smoke test)
+- [x] Style consistency pass applied (shared spacing/radius/border/button/focus tokens)
+- [x] Accessibility pass: keyboard focus-visible ring appears on inputs/selects/buttons/delete actions
+- [x] Responsive pass: controls stack correctly on narrow breakpoints and signal rows collapse cleanly
+- [x] Constraint pass: page background remains solid (no gradients)
+- [x] Empty state shows context-aware guidance (new board vs filtered no-results)
+- [x] Score badge severity colors render consistently (low/medium/high/critical)
+- [x] Toolbar controls stay readable in high-density laptop widths (compact spacing breakpoint)
+- [x] Delete action is visually distinct and includes per-signal accessible label
 
 ## Known Limitations (MVP-accepted)
 - No backend persistence (localStorage only)
