@@ -13,12 +13,13 @@ Small founder and operator communities that currently miss opportunities because
 High-value signals such as intros, grants, events, and hiring opportunities get buried in chat noise.
 
 ## Solution
-A lightweight app that captures updates quickly, ranks them transparently, filters by urgency, and exports a markdown digest for async team alignment.
+A lightweight app that captures updates quickly, ranks them transparently, supports live triage controls, and exports a markdown digest for async team alignment.
 
 ## Core Features
 - Manual signal ingestion (title, source, urgency, category, relevance)
 - Deterministic ranking (`urgency * 2 + relevance`)
-- Dashboard filtering (category + urgency)
+- Live search + dashboard filtering (category + urgency) + clear reset
+- Reliability guards (duplicate prevention, score clamping, empty-export prevention)
 - Markdown digest export for async distribution
 
 ## Why this is a good challenge fit
@@ -35,7 +36,7 @@ A lightweight app that captures updates quickly, ranks them transparently, filte
 
 ## Project Link
 - Repo URL: `https://github.com/laulopezreal/vela-community-signal-board`
-- Demo screenshot: `/home/lauureal/.openclaw/media/browser/39817a38-936e-4f0b-8784-92077db4f6ce.png`
+- Demo screenshot: `/home/lauureal/.openclaw/media/browser/7b3e835e-38e1-4903-9c3a-48d318e91fca.jpg`
 
 ## Run Instructions
 - Root: `vela-mock`

@@ -4,6 +4,7 @@ const state = {
   items: JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'),
   filterCategory: 'all',
   filterUrgency: 0,
+  search: '',
 };
 
 const els = {
@@ -13,8 +14,10 @@ const els = {
   category: document.getElementById('category'),
   urgency: document.getElementById('urgency'),
   relevance: document.getElementById('relevance'),
+  search: document.getElementById('search'),
   filterCategory: document.getElementById('filter-category'),
   filterUrgency: document.getElementById('filter-urgency'),
+  clearFilters: document.getElementById('clear-filters'),
   list: document.getElementById('signal-list'),
   empty: document.getElementById('empty'),
   exportBtn: document.getElementById('export-digest'),
@@ -22,10 +25,32 @@ const els = {
   statTotal: document.getElementById('stat-total'),
   statHigh: document.getElementById('stat-high'),
   statAvg: document.getElementById('stat-avg'),
+  toast: document.getElementById('toast'),
 };
 
 function score(item) {
   return item.urgency * 2 + item.relevance;
+}
+
+function clampInt(value, min, max, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(n)));
+}
+
+function cleanText(value) {
+  return value.trim().replace(/\s+/g, ' ');
+}
+
+let toastTimer;
+function showToast(text) {
+  if (!els.toast) return;
+  els.toast.textContent = text;
+  els.toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    els.toast.classList.remove('show');
+  }, 1500);
 }
 
 function persist() {
@@ -33,9 +58,12 @@ function persist() {
 }
 
 function sortedFilteredItems() {
+  const q = state.search.trim().toLowerCase();
+
   return state.items
     .filter((i) => state.filterCategory === 'all' || i.category === state.filterCategory)
     .filter((i) => i.urgency >= state.filterUrgency)
+    .filter((i) => !q || i.title.toLowerCase().includes(q) || i.source.toLowerCase().includes(q))
     .sort((a, b) => score(b) - score(a) || b.createdAt - a.createdAt);
 }
 
@@ -63,6 +91,7 @@ function render() {
       state.items = state.items.filter((x) => x.id !== item.id);
       persist();
       render();
+      showToast('Signal removed');
     });
     els.list.appendChild(node);
   });
@@ -74,25 +103,44 @@ function addItem(evt) {
   evt.preventDefault();
   const item = {
     id: crypto.randomUUID(),
-    title: els.title.value.trim(),
-    source: els.source.value.trim(),
+    title: cleanText(els.title.value),
+    source: cleanText(els.source.value),
     category: els.category.value,
-    urgency: Number(els.urgency.value),
-    relevance: Number(els.relevance.value),
+    urgency: clampInt(els.urgency.value, 1, 5, 3),
+    relevance: clampInt(els.relevance.value, 1, 5, 3),
     createdAt: Date.now(),
   };
 
-  if (!item.title || !item.source) return;
+  if (!item.title || !item.source) {
+    showToast('Title and source are required');
+    return;
+  }
+
+  const isDuplicate = state.items.some(
+    (x) => x.title.toLowerCase() === item.title.toLowerCase() && x.source.toLowerCase() === item.source.toLowerCase(),
+  );
+
+  if (isDuplicate) {
+    showToast('Similar signal already exists');
+    return;
+  }
+
   state.items.push(item);
   persist();
   els.form.reset();
   els.urgency.value = 3;
   els.relevance.value = 3;
   render();
+  showToast('Signal added');
 }
 
 function exportDigest() {
   const items = sortedFilteredItems();
+  if (!items.length) {
+    showToast('No signals to export');
+    return;
+  }
+
   const date = new Date().toISOString().slice(0, 10);
   const lines = [
     `# Community Signal Digest (${date})`,
@@ -107,9 +155,14 @@ function exportDigest() {
   a.download = `community-signal-digest-${date}.md`;
   a.click();
   URL.revokeObjectURL(url);
+  showToast('Digest exported');
 }
 
 els.form.addEventListener('submit', addItem);
+els.search.addEventListener('input', (e) => {
+  state.search = e.target.value;
+  render();
+});
 els.filterCategory.addEventListener('change', (e) => {
   state.filterCategory = e.target.value;
   render();
@@ -117,6 +170,16 @@ els.filterCategory.addEventListener('change', (e) => {
 els.filterUrgency.addEventListener('change', (e) => {
   state.filterUrgency = Number(e.target.value);
   render();
+});
+els.clearFilters.addEventListener('click', () => {
+  state.search = '';
+  state.filterCategory = 'all';
+  state.filterUrgency = 0;
+  els.search.value = '';
+  els.filterCategory.value = 'all';
+  els.filterUrgency.value = '0';
+  render();
+  showToast('Filters reset');
 });
 els.exportBtn.addEventListener('click', exportDigest);
 

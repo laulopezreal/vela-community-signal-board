@@ -21,6 +21,12 @@
       <div class="meta-chip">MVP • Weekend Challenge</div>
     </header>
 
+    <section class="shell capability-strip" aria-label="Core capabilities">
+      <p><strong>Local-first</strong><span>No backend needed for demo reliability.</span></p>
+      <p><strong>Priority ranking</strong><span>Urgency-weighted score for fast focus.</span></p>
+      <p><strong>Digest-ready</strong><span>One-click markdown export for async sharing.</span></p>
+    </section>
+
     <section class="shell stats" aria-label="Summary stats">
       <article class="stat-card">
         <p class="stat-label">Total Signals</p>
@@ -39,8 +45,9 @@
     <main class="layout shell">
       <section class="card form-card">
         <h2>Add Signal</h2>
-        <form id="signal-form">
-          <label>Title<input id="title" required maxlength="120" /></label>
+        <p class="section-copy">Capture one update at a time. Keep titles action-oriented and source-specific.</p>
+        <form id="signal-form" novalidate>
+          <label>Title<input id="title" required maxlength="120" placeholder="Pilot opening for AI safety workshop" /></label>
           <label>Source<input id="source" required maxlength="80" placeholder="Slack, X, Email, Discord..." /></label>
           <label>Category
             <select id="category" required>
@@ -51,8 +58,10 @@
               <option value="Hiring">Hiring</option>
             </select>
           </label>
-          <label>Urgency (1-5)<input id="urgency" type="number" min="1" max="5" value="3" required /></label>
-          <label>Relevance (1-5)<input id="relevance" type="number" min="1" max="5" value="3" required /></label>
+          <div class="score-grid">
+            <label>Urgency (1-5)<input id="urgency" type="number" min="1" max="5" value="3" required /></label>
+            <label>Relevance (1-5)<input id="relevance" type="number" min="1" max="5" value="3" required /></label>
+          </div>
           <button type="submit">Add Signal</button>
         </form>
       </section>
@@ -61,6 +70,7 @@
         <div class="toolbar">
           <h2>Signals</h2>
           <div class="filters">
+            <input id="search" type="search" placeholder="Search title or source" />
             <select id="filter-category">
               <option value="all">All categories</option>
               <option value="Opportunity">Opportunity</option>
@@ -74,6 +84,7 @@
               <option value="4">Urgency 4+</option>
               <option value="5">Urgency 5 only</option>
             </select>
+            <button id="clear-filters" type="button" class="btn-muted">Clear</button>
             <button id="export-digest" type="button">Export Digest</button>
           </div>
         </div>
@@ -94,6 +105,8 @@
         </div>
       </li>
     </template>
+
+    <p id="toast" class="toast" role="status" aria-live="polite"></p>
 
     <script src="./main.js"></script>
   </body>
