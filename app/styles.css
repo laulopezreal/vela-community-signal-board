@@ -239,9 +239,9 @@ button:hover { filter: brightness(1.06); }
 
 .filters {
   display: grid;
-  grid-template-columns: minmax(180px, 1.3fr) repeat(2, minmax(130px, 1fr)) auto auto;
+  grid-template-columns: minmax(180px, 1.3fr) repeat(2, minmax(130px, 1fr)) auto auto auto;
   gap: .5rem;
-  min-width: 620px;
+  min-width: 760px;
 }
 
 .btn-muted {

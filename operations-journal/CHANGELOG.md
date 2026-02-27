@@ -21,4 +21,6 @@
 - [ops] Updated `ops/VELA_SUBMISSION_CHECKLIST.md` to mark final review complete and track repo-live blocker separately.
 - [feature] Added community templates preset system (startup / OSS / local org) with one-click form autofill.
 - [docs] Updated README, TEST_REPORT, and submission checklist for template feature coverage.
-- [rollback] Revert template feature commit if rollback is required.
+- [feature] Added Daily Brief generator with action recommendations from top-ranked signals.
+- [docs] Updated README, TEST_REPORT, and checklist for daily brief feature.
+- [rollback] Revert template/daily-brief feature commits if rollback is required.

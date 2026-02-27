@@ -13,6 +13,7 @@
 - [x] Category filter updates list
 - [x] Urgency filter updates list
 - [x] Delete item removes record from list and storage
+- [x] Generate Daily Brief exports markdown with action recommendations
 - [x] Export digest triggers markdown file download
 
 ## Known Limitations (MVP-accepted)
