@@ -101,9 +101,5 @@ Current style upgrades in this loop:
 
 ## Judge-proof artifacts
 - Deterministic proof: [docs/DEMO_PROOF_ARTIFACT.md](docs/DEMO_PROOF_ARTIFACT.md)
-- Judge criterion mapping: [docs/JUDGE_ALIGNMENT_MATRIX.md](docs/JUDGE_ALIGNMENT_MATRIX.md)
-- Win research synthesis: [docs/WIN_SIGNAL_SYNTHESIS.md](docs/WIN_SIGNAL_SYNTHESIS.md)
 - Test report: [docs/TEST_REPORT.md](docs/TEST_REPORT.md)
-- Final review: [docs/FINAL_SUBMISSION_REVIEW.md](docs/FINAL_SUBMISSION_REVIEW.md)
 - Judge evidence pack (quick index): [docs/SUBMISSION_EVIDENCE_PACK.md](docs/SUBMISSION_EVIDENCE_PACK.md)
-- Competitive comparison matrix (loop 22): [docs/COMPETITIVE_COMPARISON_MATRIX.md](docs/COMPETITIVE_COMPARISON_MATRIX.md)

@@ -14,7 +14,6 @@ Use this as a 30-second proof index during review.
 ## Reliability + Technical Quality
 - Core implementation: [app/main.js](../app/main.js)
 - Manual validation coverage: [docs/TEST_REPORT.md](./TEST_REPORT.md)
-- Final quality review: [docs/FINAL_SUBMISSION_REVIEW.md](./FINAL_SUBMISSION_REVIEW.md)
 
 ## Determinism + Demo Safety
 - Fixed fixture and expected ranking outputs: [docs/DEMO_PROOF_ARTIFACT.md](./DEMO_PROOF_ARTIFACT.md)
@@ -46,8 +45,6 @@ Use this as a 30-second proof index during review.
   - `node ops/run_discord_pipeline.js docs/artifacts/sample-discord-export.json docs/artifacts/discord-pipeline`
 
 ## Judge Alignment
-- Criterion-to-evidence mapping: [docs/JUDGE_ALIGNMENT_MATRIX.md](./JUDGE_ALIGNMENT_MATRIX.md)
-- Win-priority synthesis from rubric research: [docs/WIN_SIGNAL_SYNTHESIS.md](./WIN_SIGNAL_SYNTHESIS.md)
 
 ## Submission Readiness
 - Repo and submit sequence: [submission/REPO_READINESS.md](../submission/REPO_READINESS.md)

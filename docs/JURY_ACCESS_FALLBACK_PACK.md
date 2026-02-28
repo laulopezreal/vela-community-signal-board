@@ -24,12 +24,10 @@ Use this pack if the GitHub repo URL is not directly accessible in your judging 
    - From `docs/`: `../ops/verify_receipt_hash.sh artifacts/judge-run-completion-receipt-2026-02-28.md`
 4. Validate quality and test coverage:
    - [docs/TEST_REPORT.md](./TEST_REPORT.md)
-   - [docs/FINAL_SUBMISSION_REVIEW.md](./FINAL_SUBMISSION_REVIEW.md)
 
 ## Direct local-proof links
 - Product/demo narrative: [README.md](../README.md)
 - Submission copy: [submission/SUBMISSION_DRAFT.md](../submission/SUBMISSION_DRAFT.md)
-- Judge alignment matrix: [docs/JUDGE_ALIGNMENT_MATRIX.md](./JUDGE_ALIGNMENT_MATRIX.md)
 - Demo determinism artifact: [docs/DEMO_PROOF_ARTIFACT.md](./DEMO_PROOF_ARTIFACT.md)
 
 ## Scope guard
