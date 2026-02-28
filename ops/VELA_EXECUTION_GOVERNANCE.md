@@ -15,6 +15,7 @@ Vela applies fixes and updates PR.
 Palmilila merges only when quality gate is met.
 
 ## Submission and Continuity Authority (LOCKED)
+Submission authority holder: Laura (human owner).
 No final submission action until Laura explicitly says to submit.
 Do not stop win-focused looping before final submission, except on strict no-fallback blocker or explicit Laura pause/stop.
 

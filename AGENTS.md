@@ -20,7 +20,7 @@ Also read:
 - memory/YYYY-MM-DD.md (today and yesterday)
 
 ## Operating Rules
-# SEE: ops/OPERATING_MODEL_MANAGER_REVIEWER.md
+# SEE (workspace SSOT): /home/lauureal/.openclaw/workspace/ops/OPERATING_MODEL_MANAGER_REVIEWER.md
 - One objective: ship and submit before deadline.
 - Scope discipline: no feature creep after MVP lock.
 - Build -> verify -> document -> submit.
@@ -28,7 +28,7 @@ Also read:
 - Submission authority rule (LOCKED): no final submission action is allowed until Laura explicitly says to submit.
 - Continuity rule (LOCKED): no stop condition before final submission except strict no-fallback blocker or explicit Laura pause/stop.
 - Autoimprovement continuity rule: when a loop finishes, relaunch the next win-focused loop automatically unless Laura explicitly pauses/stops Vela.
-- Telemetry rule: every loop must record full cycle telemetry per `ops/golden-rules/SELF_IMPROVEMENT_TELEMETRY.md` and append entries in `subagents/vela/ops/SELF_IMPROVEMENT_TELEMETRY_LOG.md`.
+- Telemetry rule: every loop must record full cycle telemetry per `/home/lauureal/.openclaw/workspace/ops/golden-rules/SELF_IMPROVEMENT_TELEMETRY.md` and append entries in `/home/lauureal/.openclaw/workspace/subagents/vela/ops/SELF_IMPROVEMENT_TELEMETRY_LOG.md`.
 
 ## Logging
 Append consequential actions to `operations-journal/CHANGELOG.md` and daily memory.
