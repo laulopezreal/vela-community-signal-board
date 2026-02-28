@@ -16,6 +16,8 @@
 - Timebox all work.
 - Block scope creep after MVP lock.
 - Submission completeness beats extra features.
+- No final submission until Laura explicitly says "submit now".
+- No stop before final submission unless strict no-fallback blocker or Laura explicitly pauses/stops.
 
 ## Safety
 - No irreversible actions without approval.

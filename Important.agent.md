@@ -10,5 +10,7 @@
 ## Immediate Priority
 Continue low-risk winner-mode polish and readiness validation while waiting for Lau approval on live-link activation and final submit.
 
+Current hardening focus now includes: truthful fallback UX (no false-success copy signal), stale placeholder cleanup, and judge-fast evidence indexing.
+
 ## First Executable Step
-Validate judge walkthrough end-to-end using the new health-check preflight path, then tighten any remaining copy mismatches across README/checklist/submission docs.
+Run one more end-to-end demo macro walk (Demo Reset + Health Run -> brief export -> digest export) and capture any wording drift for final pre-submit tightening.
