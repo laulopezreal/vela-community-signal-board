@@ -741,14 +741,14 @@ async function generateCanonicalEvidenceArtifacts() {
 }
 
 function tryDownloadText(filename, text) {
-  if (typeof Blob !== 'undefined' && typeof URL?.createObjectURL === 'function') {
+  if (typeof Blob !== 'undefined' && typeof globalThis.URL?.createObjectURL === 'function') {
     const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
+    const url = globalThis.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
     a.click();
-    URL.revokeObjectURL(url);
+    globalThis.URL.revokeObjectURL(url);
     return true;
   }
 
@@ -911,8 +911,8 @@ function runHealthCheck({ silent = false } = {}) {
   checks.push({
     name: 'Export capability',
     ok:
-      (typeof Blob !== 'undefined' && typeof URL?.createObjectURL === 'function') ||
-      ('download' in HTMLAnchorElement.prototype),
+      (typeof Blob !== 'undefined' && typeof globalThis.URL?.createObjectURL === 'function') ||
+      ('download' in (globalThis.HTMLAnchorElement?.prototype || {})),
   });
   checks.push({ name: 'Core crypto/id support', ok: !!(globalThis.crypto?.randomUUID || globalThis.crypto?.getRandomValues) });
 
