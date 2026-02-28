@@ -17,8 +17,8 @@
 If the repo URL is not accessible in your environment, use [docs/JURY_ACCESS_FALLBACK_PACK.md](./JURY_ACCESS_FALLBACK_PACK.md) for an artifact-first verification path.
 
 ## Demo preflight (judge-facing)
-1. Click **Demo Reset + Health Run** and confirm PASS.
-2. Walk ranking order and urgency-weighted scoring.
-3. Filter to urgency 4+ for triage speed.
-4. Generate Daily Brief.
-5. Export digest and close on impact.
+1. Click **Run Health Check** and confirm PASS/ATTENTION state is visible.
+2. Click **Load Demo Scenario**.
+3. Walk ranking order and urgency-weighted scoring.
+4. Filter to urgency 4+ for triage speed.
+5. Generate Daily Brief, then Export Digest, and close on impact.

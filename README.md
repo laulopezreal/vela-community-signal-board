@@ -21,13 +21,10 @@ A lightweight app that helps small communities capture scattered updates, rank w
 - Exports a markdown digest with recommended actions for async sharing
 - Loads a deterministic demo scenario for a zero-risk judging walkthrough
 - Runs an in-app health check preflight before live demo
-- Provides one-click **Demo Reset + Health Run** macro (load deterministic scenario -> clear filters -> health check -> focus top-ranked card)
-- Adds **Submission Mode** toggle to hide non-essential controls and spotlight the fastest judge path
-- Adds one-click **Generate Final Evidence Bundle** macro (brief + digest + judge snapshot + manifest reference)
-- Auto-exports a compact **Judge Run Completion Receipt** (timestamp + health status + generated filenames + receipt SHA-256 integrity line)
+- Supports a deterministic demo walkthrough via **Load Demo Scenario**
+- Runs an in-app health check preflight before live demo
+- Generates daily brief and digest markdown artifacts for judging evidence
 - Safely recovers from corrupted localStorage data without breaking app load
-- Gracefully degrades when browser storage is blocked (demo still runs with clear warning)
-- Includes resilient download fallback for markdown exports when Blob URLs are unavailable
 
 ## Why this community
 Small founder and builder groups miss opportunities when important signals are split across Slack, X, email, and chats. This app creates one clean board and one daily digest.
@@ -82,11 +79,12 @@ Current style upgrades in this loop:
 "Small communities lose real opportunities because high-signal updates are scattered across Slack, email, WhatsApp, and X. Community Signal Board turns that noise into one ranked action queue plus a daily brief and digest in under a minute."
 
 ## Demo narrative (90 seconds)
-1. Toggle **Submission Mode: On** to enter judge-speed view.
-2. Click **Demo Reset + Health Run** (atomic preflight: deterministic load -> clear filters -> health check -> top-card focus).
-3. Click **Generate Final Evidence Bundle** to export brief, digest, judge snapshot, manifest reference, and judge-run completion receipt in one action.
-4. Show ranking order and explain urgency-weighted scoring.
-5. Close with impact: fewer missed opportunities, faster shared awareness.
+1. Click **Run Health Check** and confirm PASS/ATTENTION state.
+2. Click **Load Demo Scenario** for deterministic fixture data.
+3. Show ranking order and explain urgency-weighted scoring.
+4. Filter to urgency 4+ for triage speed.
+5. Generate Daily Brief and Export Digest.
+6. Close with impact: fewer missed opportunities, faster shared awareness.
 
 ## Judge-proof artifacts
 - Deterministic proof: [docs/DEMO_PROOF_ARTIFACT.md](docs/DEMO_PROOF_ARTIFACT.md)
