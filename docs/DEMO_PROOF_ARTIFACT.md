@@ -7,9 +7,10 @@ Provide a reproducible, judge-safe demo path with fixed inputs and predictable o
 
 ## How to trigger
 1. Open app.
-2. Click **Load Demo Scenario**.
-3. Observe ranked list and stats.
-4. Click **Generate Daily Brief** or **Export Digest**.
+2. Click **Demo Reset + Health Run**.
+3. Verify health status shows PASS/ATTENTION and top-ranked card is auto-focused.
+4. Observe ranked list and stats.
+5. Click **Generate Daily Brief** or **Export Digest**.
 
 ## Fixed fixture (seeded in `app/main.js`)
 1. Grant call closes tonight for community tooling (Funding) -> urgency 5, relevance 4, confidence 4
@@ -41,3 +42,10 @@ Expected top stats after loading demo:
 - Removes live-demo randomness and typing risk.
 - Gives judges immediate proof that ranking logic is deterministic.
 - Produces export artifacts with known output quality in under 30 seconds.
+
+## Loop 17 final visual QA snapshot
+- Snapshot artifact: [docs/artifacts/loop17-post-loop-qa.png](artifacts/loop17-post-loop-qa.png)
+- Capture context: Submission Mode ON after `Demo Reset + Health Run`.
+- Readability check: metadata/action copy remains legible in dense list rows; hierarchy from stats -> judge controls -> ranked cards stays clear.
+- Judge-path clarity check: fast path is still explicit and linear (`Demo Reset + Health Run` -> `Generate Final Evidence Bundle`).
+- Regression check: primary controls and markers visible and unchanged (`Submission Mode`, `Demo Reset + Health Run`, `Generate Final Evidence Bundle`, `Health PASS • 4/4 checks passed`, score badges, delete controls).
