@@ -30,12 +30,14 @@
 - [x] Constraint check: no submission/freeze action taken
 
 ## Submission Assets
-- [x] Project link/repo live and shareable (verified via `gh repo view laulopezreal/vela-community-signal-board`)
+- [ ] Project link/repo live and shareable for unauthenticated judges (current `curl -I` check returns 404)
+- [x] Access-safe jury fallback pack documented (`docs/JURY_ACCESS_FALLBACK_PACK.md`)
 - [x] Repo readiness path documented (`submission/REPO_READINESS.md`)
 - [x] Demo narrative drafted
 - [x] 30-second opening narrative tightened
 - [x] Deterministic demo path added (Load Demo Scenario)
 - [x] Demo preflight path added (Run Health Check)
+- [x] One-click demo macro added (Demo Reset + Health Run with deterministic sequence + top-card focus)
 - [x] Proof artifact documented (`docs/DEMO_PROOF_ARTIFACT.md`)
 - [x] Judge objection handling prepared (`submission/SUBMISSION_DRAFT.md`)
 - [x] Submission form fields prepared

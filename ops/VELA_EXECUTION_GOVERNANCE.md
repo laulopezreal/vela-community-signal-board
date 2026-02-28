@@ -14,6 +14,10 @@ Palmilila reviews, leaves comments, requests fixes when needed.
 Vela applies fixes and updates PR.
 Palmilila merges only when quality gate is met.
 
+## Submission and Continuity Authority (LOCKED)
+No final submission action until Laura explicitly says to submit.
+Do not stop win-focused looping before final submission, except on strict no-fallback blocker or explicit Laura pause/stop.
+
 ## Quality Gate Before Merge
 Build/smoke checks pass.
 Docs/checklist/changelog/memory are synchronized.
