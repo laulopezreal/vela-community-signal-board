@@ -6,7 +6,7 @@ Proof that Vela moves Discord export input from noisy chat logs to actionable ow
 ## Reproduce
 
 ```bash
-cd /home/lauureal/git/vela-community-signal-board
+cd <repo-root>
 node --check ops/run_discord_pipeline.js
 node ops/run_discord_pipeline.js docs/artifacts/sample-discord-export.json docs/artifacts/discord-pipeline
 ```
