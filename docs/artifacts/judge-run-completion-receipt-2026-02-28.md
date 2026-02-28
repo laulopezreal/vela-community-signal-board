@@ -6,7 +6,7 @@ Health status: PASS (4/4)
 Generated filenames:
 - final-evidence-brief-2026-02-28.md
 - final-evidence-digest-2026-02-28.md
-- final-evidence-judge-snapshot-2026-02-28.md
+- final-evidence-judge-snapshot-2026-02-28.md (internal-only; intentionally not published in public-safe mode)
 - final-evidence-manifest-reference-2026-02-28.md
 - judge-run-completion-receipt-2026-02-28.md
 

@@ -49,4 +49,4 @@ Use this as a 30-second proof index during review.
 ## Submission Readiness
 - Repo and submit sequence: [submission/REPO_READINESS.md](../submission/REPO_READINESS.md)
 - Jury access fallback pack (artifact-first when repo visibility is constrained): [docs/JURY_ACCESS_FALLBACK_PACK.md](./JURY_ACCESS_FALLBACK_PACK.md)
-- Final gate checklist: [ops/VELA_SUBMISSION_CHECKLIST.md](../ops/VELA_SUBMISSION_CHECKLIST.md)
+- Final gate checklist (SSOT): [submission/SUBMISSION_RULES_SSOT.md](../submission/SUBMISSION_RULES_SSOT.md)
