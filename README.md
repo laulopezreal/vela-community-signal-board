@@ -3,6 +3,7 @@
 DEV Weekend Challenge MVP for builder and operator communities.
 
 ## Start Here (Judge-Speed Evidence Path)
+Submission rules authority: [submission/SUBMISSION_RULES_SSOT.md](submission/SUBMISSION_RULES_SSOT.md)
 1. Overview + demo path: [README.md](./README.md)
 2. Deterministic proof index: [docs/SUBMISSION_EVIDENCE_PACK.md](./docs/SUBMISSION_EVIDENCE_PACK.md)
 3. Access-constrained fallback: [docs/JURY_ACCESS_FALLBACK_PACK.md](./docs/JURY_ACCESS_FALLBACK_PACK.md)

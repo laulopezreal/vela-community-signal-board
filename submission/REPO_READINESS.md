@@ -1,5 +1,7 @@
 # Repo Readiness Path (Project Link Preparation)
 
+Rules authority: [submission/SUBMISSION_RULES_SSOT.md](./SUBMISSION_RULES_SSOT.md)
+
 ## Goal
 Produce a clean project link suitable for challenge submission with minimal risk.
 
@@ -22,3 +24,7 @@ Produce a clean project link suitable for challenge submission with minimal risk
 - If repo is not accessible: fallback review path is usable via [docs/JURY_ACCESS_FALLBACK_PACK.md](../docs/JURY_ACCESS_FALLBACK_PACK.md)
 - Run instructions work from fresh clone/local copy
 - Screenshot and submission docs are present
+
+
+## Current submission mode
+- `fallback_first_mode` (until primary repo accessibility is explicitly verified)
