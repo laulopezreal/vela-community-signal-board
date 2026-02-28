@@ -59,3 +59,119 @@
 - [docs] Added `docs/JUDGE_ALIGNMENT_MATRIX.md` and updated `README.md` + `submission/SUBMISSION_DRAFT.md` with judge-facing preflight and evidence mapping.
 - [verify] Ran `node --check app/main.js` and local HTTP smoke check (`curl http://127.0.0.1:5182` grep for health-check controls).
 - [risk] Hit Brave Search 429 twice consecutively; stopped retries per rate-limit policy and proceeded with fetched sources.
+
+## 2026-02-28
+- [reliability] Hardened clipboard fallback in `app/main.js` so failed `execCommand('copy')` now reports a clear non-silent failure toast instead of false success.
+- [docs] Resolved stale placeholder in `docs/FINAL_SUBMISSION_REVIEW.md` by replacing `[LINK_STATUS]` with concrete GitHub remote verification text.
+- [evidence] Added `docs/SUBMISSION_EVIDENCE_PACK.md` as a judge-fast proof index (narrative, reliability, determinism, alignment, readiness).
+- [docs] Linked the new evidence pack from `README.md` under judge-proof artifacts.
+- [verify] Re-ran syntax gate: `node --check app/main.js`; confirmed no remaining `[LINK_STATUS]` placeholders in docs.
+- [verify] Ran one full judge simulation pass in browser: Demo Reset + Health Run -> Generate Daily Brief -> Export Digest; confirmed PASS status and completion toasts.
+- [docs] Tightened final wording drift across `README.md`, `submission/SUBMISSION_DRAFT.md`, and `docs/JUDGE_ALIGNMENT_MATRIX.md` to align on macro-first demo narrative.
+- [telemetry] Appended full-cycle entry to `ops/SELF_IMPROVEMENT_TELEMETRY_LOG.md` (objective, evidence, fallback, next hypothesis).
+- [artifact] Captured final freeze-loop judge screenshot at `docs/artifacts/judge-ready-screenshot.png` (clean local app render).
+- [docs] Ran final wording consistency pass across `README.md`, `submission/SUBMISSION_DRAFT.md`, and `docs/JUDGE_ALIGNMENT_MATRIX.md`; applied minimal copy alignment only.
+- [docs] Repointed screenshot references in README/submission draft to repo-local artifact path.
+- [hold] Submission-ready freeze reached; no submission action taken.
+- [artifact] Added deterministic static proof artifacts: `docs/artifacts/sample-daily-brief.md` and `docs/artifacts/sample-digest.md`.
+- [docs] Updated `docs/SUBMISSION_EVIDENCE_PACK.md` to link both concrete sample artifacts explicitly under Determinism + Demo Safety.
+- [verify] Ran quick narrative consistency check across `README.md`, `docs/SUBMISSION_EVIDENCE_PACK.md`, and `submission/SUBMISSION_DRAFT.md` for deterministic demo language alignment.
+- [fix] Resolved SSOT drift in `submission/SUBMISSION_DRAFT.md` run instructions by replacing stale root `vela-mock` -> `vela`.
+- [docs] Increased evidence visibility by linking deterministic sample artifacts in `README.md` submission assets and submission objection-handling copy.
+- [docs] Updated `docs/FINAL_SUBMISSION_REVIEW.md` to explicitly include concrete deterministic export artifacts and evidence-pack availability.
+- [verify] Re-ran syntax gate (`node --check app/main.js`) and reference scan for stale pointers (`grep -RInE`), with no remaining `vela-mock` matches.
+- [docs] Applied jury-readability micro-polish across submission-facing docs by converting path-style evidence pointers into direct markdown links (`README.md`, `docs/SUBMISSION_EVIDENCE_PACK.md`, `docs/FINAL_SUBMISSION_REVIEW.md`, `docs/JUDGE_ALIGNMENT_MATRIX.md`, `submission/SUBMISSION_DRAFT.md`).
+- [docs] Ran final consistency sweep for submission language (normalized `founder/operator` to `founder and operator` in judge-facing copy).
+- [verify] Executed relative-link existence validation over updated submission-facing docs; no broken local links detected (`BAD 0`).
+- [audit] Ran final pre-submit freeze check from `docs/SUBMISSION_EVIDENCE_PACK.md` and traversed all proof links.
+- [verify] Confirmed local submission-doc link graph remains clean after freeze pass (`BAD 0`).
+- [blocker] Detected unauthenticated GitHub access failure for submission URL (`HTTP/2 404`), blocking judge-side markdown render confirmation.
+- [docs] Applied minimal blocker-consistency fixes in `submission/REPO_READINESS.md`, `ops/VELA_SUBMISSION_CHECKLIST.md`, and `docs/FINAL_SUBMISSION_REVIEW.md` to reflect hold state truthfully.
+- [hold] Kept explicit no-submit freeze state pending repository visibility fix.
+- [feature] Added per-signal "Next action" guidance directly in ranked cards for faster operator triage (`app/index.html`, `app/main.js`, `app/styles.css`).
+- [report] Upgraded markdown exports to include explicit scoring formula and recommended-action lines for each item (`app/main.js`).
+- [reliability] Hardened ranking determinism with explicit fallback tie-break (`score -> createdAt -> title`) to avoid unstable equal-score ordering (`app/main.js`).
+- [docs] Synced capability and validation docs (`README.md`, `docs/TEST_REPORT.md`) with the new action-guidance and deterministic-sort behavior.
+- [verify] Re-ran syntax gate (`node --check app/main.js`) and template smoke check for `item-action` in served HTML (`curl http://127.0.0.1:5187/app/index.html`).
+- [feature] Added one-click `Generate Canonical Evidence Artifacts` action in toolbar to emit deterministic brief/digest plus manifest package (`app/index.html`, `app/main.js`).
+- [reliability] Added canonical checksum + line-count validator (SHA-256) against fixed manifest constants before artifact emission (`app/main.js`).
+- [artifact] Updated deterministic evidence assets to fixed canonical outputs and added manifest file (`docs/artifacts/sample-daily-brief.md`, `docs/artifacts/sample-digest.md`, `docs/artifacts/canonical-evidence-manifest.md`).
+- [docs] Synced judge-proof index to include one-click canonical action and checksum manifest (`docs/SUBMISSION_EVIDENCE_PACK.md`).
+- [verify] Ran syntax gate and artifact integrity check (`node --check app/main.js`; SHA/line-count match for canonical samples).
+- [verify] Executed loop-9 browser proof sequence on local app: `Demo Reset + Health Run` then `Generate Canonical Evidence Artifacts`; confirmed PASS and canonical-validation success states in UI.
+- [artifact] Captured fresh visual proof screenshots: `docs/artifacts/loop9-health-pass.jpg` and `docs/artifacts/loop9-canonical-artifacts-success.jpg`.
+- [docs] Updated `docs/SUBMISSION_EVIDENCE_PACK.md` with direct links to loop-9 visual proof artifacts under Determinism + Demo Safety.
+- [hold] No submission action taken; repository remains in hold-ready state.
+- [artifact] Added visual-proof integrity manifest `docs/artifacts/loop10-visual-proof-manifest.md` with SHA-256 + byte-size metadata for loop-9 screenshots.
+- [docs] Updated `docs/SUBMISSION_EVIDENCE_PACK.md` to link the new visual-proof integrity manifest for faster judge verification.
+- [verify] Recomputed screenshot integrity metadata via `sha256sum` and `wc -c` against `docs/artifacts/loop9-*.jpg`.
+- [feature] Added `Submission Mode` toggle with judge-speed spotlight path that hides non-essential controls and keeps demo-critical actions visible (`app/index.html`, `app/main.js`, `app/styles.css`).
+- [feature] Added one-click `Generate Final Evidence Bundle` macro exporting brief + digest + judge snapshot + manifest-reference artifact (`app/index.html`, `app/main.js`).
+- [verify] Validated end-to-end demo-reset flow in submission mode (Submission Mode ON -> Demo Reset + Health Run -> Generate Final Evidence Bundle) on local browser.
+- [artifact] Captured fresh loop-11 screenshot proof: `docs/artifacts/loop11-submission-mode-bundle.jpg`.
+- [docs] Synced judge-facing docs and validation coverage for loop-11 improvements (`README.md`, `docs/TEST_REPORT.md`, `docs/SUBMISSION_EVIDENCE_PACK.md`, `ops/SELF_IMPROVEMENT_TELEMETRY_LOG.md`).
+- [hold] No submission action taken.
+- [feature] Extended `Generate Final Evidence Bundle` to auto-export `judge-run-completion-receipt-YYYY-MM-DD.md` with timestamp, health status, and generated filenames (`app/main.js`).
+- [artifact] Added deterministic receipt artifact sample at `docs/artifacts/judge-run-completion-receipt-2026-02-28.md`.
+- [docs] Linked receipt artifact in judge quick index and synced usage docs (`docs/SUBMISSION_EVIDENCE_PACK.md`, `README.md`, `docs/TEST_REPORT.md`).
+- [verify] Revalidated end-to-end flow on local app: Submission Mode ON -> Demo Reset + Health Run -> Generate Final Evidence Bundle; UI reported `Final evidence bundle + judge receipt generated` and health PASS 4/4.
+- [hold] No submission action taken.
+- [feature] Added receipt integrity line in final-bundle judge receipt generation (`app/main.js`): `Receipt SHA-256 (body)` computed from receipt body content.
+- [artifact] Updated sample receipt artifact with integrity line: `docs/artifacts/judge-run-completion-receipt-2026-02-28.md`.
+- [docs] Synced user-facing receipt wording to include SHA-256 integrity line (`README.md`, `docs/SUBMISSION_EVIDENCE_PACK.md`, `docs/TEST_REPORT.md`).
+- [verify] Re-ran one E2E bundle flow on local app (`http://127.0.0.1:5190`): Demo Reset + Health Run -> Generate Final Evidence Bundle; observed `Health PASS • 4/4 checks passed` and `Final evidence bundle + judge receipt generated`.
+- [verify] Re-ran syntax gate: `node --check app/main.js`.
+- [feature] Added receipt hash verifier micro-proof script `ops/verify_receipt_hash.sh` to recompute and validate `Receipt SHA-256 (body)` against receipt content.
+- [docs] Linked verifier usage in judge-facing docs (`README.md`, `docs/SUBMISSION_EVIDENCE_PACK.md`, `docs/TEST_REPORT.md`) without workflow/UX expansion.
+- [verify] Ran one validation pass: `./ops/verify_receipt_hash.sh docs/artifacts/judge-run-completion-receipt-2026-02-28.md` -> PASS.
+- [ux] Added explicit judge-path hint and primary-control emphasis to reduce scan/click friction (`app/index.html`, `app/styles.css`).
+- [a11y] Added accessible naming for filter controls and keyboard-focusable signal cards with visible focus styling (`app/index.html`, `app/main.js`, `app/styles.css`).
+- [ux] Added confidence helper microcopy and inline form error region with field-level invalid/focus behavior for clearer recovery (`app/index.html`, `app/main.js`, `app/styles.css`).
+- [docs] Synced loop-15 UX-first evidence and validation notes (`docs/STYLE_LOOP.md`, `docs/TEST_REPORT.md`, `ops/SELF_IMPROVEMENT_TELEMETRY_LOG.md`).
+- [verify] Ran deterministic loop-15 validation pass: `node --check app/main.js` + local HTTP marker checks (`judge-path-hint`, `form-error`) -> PASS.
+- [style] Applied loop-16 readability micro-polish to list metadata typography only (`.item-meta`, `.item-metrics`, `.item-action`) in `app/styles.css` for density/rhythm/contrast improvements.
+- [guardrail] Kept scope strictly visual-textual; no control, layout, or functionality expansion.
+- [docs] Synced readability pass details to `docs/STYLE_LOOP.md` and `docs/TEST_REPORT.md`.
+- [verify] Re-ran deterministic gate from loop 15 unchanged: `node --check app/main.js` + local HTTP marker checks (`judge-path-hint`, `form-error`) -> PASS.
+- [artifact] Captured final post-loop visual QA snapshot: `docs/artifacts/loop17-post-loop-qa.png` (Submission Mode ON, post `Demo Reset + Health Run`).
+- [qa] Confirmed no regressions in primary demo controls/markers in final snapshot state: Submission Mode toggle, judge fast-path controls, health PASS marker, score badges, delete actions.
+- [docs] Synced visual QA evidence summary into `docs/DEMO_PROOF_ARTIFACT.md` (loop-17 section).
+- [telemetry] Appended loop-17 cycle entry to `ops/SELF_IMPROVEMENT_TELEMETRY_LOG.md`.
+- [hold] No feature/path changes made and no submission action taken.
+- [audit] Audited submission-facing docs for repo-access assumptions and judge-access ambiguity.
+- [docs] Added `docs/JURY_ACCESS_FALLBACK_PACK.md` with explicit access note, artifact-first verification path, and direct local-proof links.
+- [docs] Synced fallback-pack references in submission-facing docs: `README.md`, `submission/SUBMISSION_DRAFT.md`, `submission/REPO_READINESS.md`, `docs/SUBMISSION_EVIDENCE_PACK.md`, `docs/JUDGE_ALIGNMENT_MATRIX.md`, `docs/FINAL_SUBMISSION_REVIEW.md`, `ops/VELA_SUBMISSION_CHECKLIST.md`.
+- [guardrail] Removed false public-access assumption language by making repo URL conditional and documenting constrained-access fallback review path.
+- [hold] No submission action taken.
+- [audit] Ran loop-19 constrained-access judge simulation using `docs/JURY_ACCESS_FALLBACK_PACK.md` as the only verification route (no GitHub visibility dependency).
+- [verify] Confirmed all fallback-pack proof targets exist and receipt hash verification passes end-to-end.
+- [docs] Removed command-path ambiguity in submission-facing docs by adding explicit verifier invocations for both repo-root and `docs/` working directories (`docs/JURY_ACCESS_FALLBACK_PACK.md`, `docs/SUBMISSION_EVIDENCE_PACK.md`).
+- [hold] No submission action taken.
+- [ux] Added one-click `Run Judge Fast Path` primary control to reduce judge walkthrough clicks by chaining existing deterministic steps (`Demo Reset + Health Run` -> `Generate Final Evidence Bundle`) (`app/index.html`, `app/main.js`).
+- [copy] Tightened judge-path hint microcopy to prioritize one-click route while preserving explicit two-step fallback for clarity (`app/index.html`).
+- [style] Included fast-path control in submission-mode primary emphasis styling (`app/styles.css`).
+- [docs] Synced loop-20 microcycle notes in `docs/STYLE_LOOP.md` and `docs/TEST_REPORT.md`.
+- [verify] Ran syntax + marker validation: `node --check app/main.js` and `grep` checks for `run-judge-fast-path`/updated fast-path hint.
+- [ux-copy] Loop-21 toast microcopy polish: suppressed intermediate success toasts during chained `Run Judge Fast Path` execution and kept a single consolidated completion toast (`app/main.js`).
+- [copy] Normalized final bundle success wording (`and` instead of `+`) for consistent judge-facing phrasing.
+- [docs] Synced loop-21 notes in `docs/STYLE_LOOP.md` and `docs/TEST_REPORT.md`.
+- [telemetry] Appended loop-21 cycle entry to `ops/SELF_IMPROVEMENT_TELEMETRY_LOG.md`.
+- [verify] Ran syntax + deterministic marker validation: `node --check app/main.js` and marker checks for `judge-path-hint` + `form-error`.
+- [audit] Added loop-22 competitive parity and differentiation matrix at `docs/COMPETITIVE_COMPARISON_MATRIX.md` (Notion/Trello/Airtable/manual workflow benchmark set).
+- [gap-closure] Implemented minimal-risk explainability uplift in `app/main.js`: per-item score formula breakdown text plus score badge tooltip/aria formula labels.
+- [docs] Synced loop-22 references and validation notes in `README.md`, `docs/STYLE_LOOP.md`, and `docs/TEST_REPORT.md`.
+- [verify] Re-ran deterministic validation gate: `node --check app/main.js` and static marker checks for formula explainability strings.
+- [hold] No submission action taken.
+- [docs] Loop-23 evidence discoverability polish: added a single "Start here" cross-link path across `README.md`, `docs/SUBMISSION_EVIDENCE_PACK.md`, and `docs/JURY_ACCESS_FALLBACK_PACK.md` for faster judge navigation.
+- [copy] Kept judge-path wording concise and deterministic-proof oriented; no feature, control, or topology edits.
+- [verify] Ran zero-diff deterministic sweep: `node --check app/main.js` (syntax PASS) and scoped markdown relative-link integrity check across the 3 start-path docs (`bad=0`).
+- [docs] Loop-24 submission-copy parity: mirrored the same 3-step `Start here` evidence path in `submission/SUBMISSION_DRAFT.md` to match README/evidence/fallback routing.
+- [copy] Kept wording concise and deterministic-proof oriented; no UI/control/topology edits.
+- [verify] Re-ran scoped deterministic checks: `node --check app/main.js` (PASS) and markdown relative-link integrity on touched doc `submission/SUBMISSION_DRAFT.md` (`bad=0`).
+- [telemetry] Appended loop-24 cycle entry to `ops/SELF_IMPROVEMENT_TELEMETRY_LOG.md`.
+- [docs] Loop-25 heading/label uniformity sweep across submission-facing docs: normalized `Start Here (Judge-Speed Evidence Path)` block in `README.md`, `submission/SUBMISSION_DRAFT.md`, `docs/SUBMISSION_EVIDENCE_PACK.md`, `docs/JURY_ACCESS_FALLBACK_PACK.md`, and `docs/JUDGE_ALIGNMENT_MATRIX.md`.
+- [copy] Standardized deterministic-proof/start-path wording and normalized access callout naming to `Access Note (Judge-Facing)` where applicable.
+- [verify] Re-ran scoped deterministic checks: `node --check app/main.js` (PASS) and markdown relative-link integrity across 5 touched docs (`LINK_CHECK files=5 bad=0`).
+- [telemetry] Appended loop-25 cycle entry to `ops/SELF_IMPROVEMENT_TELEMETRY_LOG.md`.
+- [qa] Subagent full-delta quality review completed before PR packaging; normalized review/report date headers to 2026-02-28 (`docs/TEST_REPORT.md`, `docs/FINAL_SUBMISSION_REVIEW.md`).
+- [verify] Re-ran validation gate on packaged deltas: `node --check app/main.js`, local HTTP smoke markers, and receipt hash verifier script PASS.
