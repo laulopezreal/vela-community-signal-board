@@ -593,3 +593,19 @@ Time-to-complete: ~3 minutes.
 Human interventions: None.
 Win-probability delta rationale: Improves first-pass judge fluency by eliminating heading/label drift and preserving one deterministic entry vocabulary across all submission-surface documents.
 Next hypothesis: Optional loop-26 micro-pass can enforce title-case parity for remaining judge-facing subsection labels (for example "Demo Script" vs "Demo preflight") if requested, keeping content and topology unchanged.
+
+## Cycle 27 — Receipt integrity correction (2026-02-28)
+Objective: Restore deterministic trust chain after drift-check flagged receipt hash mismatch.
+
+Changes:
+- Updated embedded `Receipt SHA-256 (body)` in:
+  - `docs/artifacts/judge-run-completion-receipt-2026-02-28.md`
+- Re-ran verifier micro-proof:
+  - `./ops/verify_receipt_hash.sh docs/artifacts/judge-run-completion-receipt-2026-02-28.md`
+
+Outcome:
+- `PASS: receipt body hash verified (630d3c800f4c7677a1a37def88ed814af01712e4d4a44215a29fb2b09c9b5717)`
+- Deterministic receipt integrity proof is restored.
+
+Failure signature before fix:
+- `FAIL: receipt body hash mismatch (embedded=7bbb87d4..., recomputed=630d3c80...)`

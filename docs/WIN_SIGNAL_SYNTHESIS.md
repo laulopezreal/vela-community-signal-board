@@ -3,8 +3,8 @@
 ## Sources reviewed
 1. Devpost guide: "Understanding hackathon submission and judging criteria"
    - https://info.devpost.com/blog/understanding-hackathon-submission-and-judging-criteria
-2. Devpost event rubric example (World Hackathon 2025)
-   - https://world-hackathon.devpost.com/
+2. Devpost event rubric example (DEV Weekend Challenge)
+   - https://dev.to/devteam/happening-now-dev-weekend-challenge-submissions-due-march-2-at-759am-utc-5fg8
 
 ## Cross-source winner pattern
 Consistent criteria across sources:

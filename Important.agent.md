@@ -13,4 +13,4 @@ Continue low-risk winner-mode polish and readiness validation while waiting for 
 Current hardening focus now includes: truthful fallback UX (no false-success copy signal), stale placeholder cleanup, and judge-fast evidence indexing.
 
 ## First Executable Step
-Run one more end-to-end demo macro walk (Demo Reset + Health Run -> brief export -> digest export) and capture any wording drift for final pre-submit tightening.
+Submission Mode ON -> Run Judge Fast Path -> verify receipt/hash -> final doc consistency pass.

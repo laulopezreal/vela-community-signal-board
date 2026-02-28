@@ -1,0 +1,50 @@
+{
+  "adapter": "generic-json",
+  "exportedAt": "2026-02-28T15:00:00Z",
+  "items": [
+    {
+      "externalId": "discord:msg:81021",
+      "title": "Grant call closes tonight for community tooling",
+      "source": "Discord #grants",
+      "category": "Opportunity",
+      "urgency": 5,
+      "relevance": 5,
+      "confidence": 4,
+      "owner": "Lau",
+      "createdAt": "2026-02-28T13:20:00Z"
+    },
+    {
+      "externalId": "x:post:93211",
+      "title": "Partner intro thread open for AI infra founders",
+      "source": "X list: infra scouts",
+      "category": "Opportunity",
+      "urgency": 4,
+      "relevance": 5,
+      "confidence": 4,
+      "owner": "Lau",
+      "createdAt": "2026-02-28T12:10:00Z"
+    },
+    {
+      "externalId": "discord:msg:81044",
+      "title": "Workshop slots almost full for agent observability",
+      "source": "Discord #events",
+      "category": "Resource",
+      "urgency": 4,
+      "relevance": 4,
+      "confidence": 4,
+      "owner": "Unassigned",
+      "createdAt": "2026-02-28T11:55:00Z"
+    },
+    {
+      "externalId": "x:post:93307",
+      "title": "Sponsor paused creator credits next week",
+      "source": "X alert: sponsor account",
+      "category": "Risk",
+      "urgency": 5,
+      "relevance": 4,
+      "confidence": 3,
+      "owner": "Lau",
+      "createdAt": "2026-02-28T10:30:00Z"
+    }
+  ]
+}

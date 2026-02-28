@@ -1,0 +1,20 @@
+{
+  "before": {
+    "rawMessages": 8,
+    "malformedRows": 2,
+    "duplicateSignals": 1,
+    "decisionObjects": 0
+  },
+  "after": {
+    "normalizedSignals": 5,
+    "uniqueClusters": 4,
+    "decisionObjects": 5,
+    "decisionCoveragePct": 100,
+    "dedupeReductionPct": 20
+  },
+  "delta": {
+    "decisionsCreated": 5,
+    "malformedFiltered": 2,
+    "duplicatesCollapsed": 1
+  }
+}

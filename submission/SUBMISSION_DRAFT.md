@@ -1,4 +1,4 @@
-# Weekend Challenge Submission Draft
+# DEV Weekend Challenge Submission Draft
 
 ## Start Here (Judge-Speed Evidence Path)
 1. Overview + demo path: [README.md](../README.md)
@@ -36,13 +36,25 @@ A lightweight app that captures updates quickly, ranks them transparently, suppo
 - Delivers immediate utility with a focused MVP
 - Prioritizes reliability and usability over extra complexity
 
+## Real Value Proof (submission block)
+- **User / job-to-be-done:** founder/operator triaging fragmented community opportunities into one daily action queue.
+- **Baseline (before):** fragmented channel scanning and non-reproducible prioritization.
+- **After (with app):** exported channel signals are normalized and deterministically ranked into a queue and markdown proof snapshot.
+- **Measurable delta:** from manual/variable sorting to one-command deterministic triage run.
+- **Proof artifacts:** [docs/artifacts/real-value-before-after.md](../docs/artifacts/real-value-before-after.md), [ops/real-input-adapter-contract.md](../ops/real-input-adapter-contract.md), [docs/artifacts/sample-exported-signals.json](../docs/artifacts/sample-exported-signals.json), [docs/artifacts/real-input-ranked-queue-snapshot.md](../docs/artifacts/real-input-ranked-queue-snapshot.md)
+
 ## Demo Script (90 seconds)
+Primary one-click path:
+1. Turn **Submission Mode ON**.
+2. Click **Run Judge Fast Path**.
+3. Confirm deterministic outputs (ranking + artifacts) and briefly explain urgency-weighted scoring.
+4. Verify receipt/hash integrity and point to evidence links.
+5. Close with impact: fewer missed opportunities, faster shared awareness.
+
+Explicit fallback two-step (if needed):
 1. Click **Run Health Check** and confirm visible status.
 2. Click **Load Demo Scenario** for deterministic seed data.
-3. Show ranking order and explain urgency-weighted scoring.
-4. Filter to urgency 4+ and explain fast triage.
-5. Generate Daily Brief and Export Digest markdown.
-6. Close with impact: fewer missed opportunities, faster shared awareness.
+3. Generate Daily Brief and Export Digest markdown.
 
 ## Judge objection handling (short answers)
 - "Why no backend?" -> Weekend MVP prioritizes reliable capture and decision speed. Local-first avoids infra risk during validation and still proves workflow value.

@@ -6,11 +6,16 @@ Date: 2026-02-27
 Provide a reproducible, judge-safe demo path with fixed inputs and predictable outputs.
 
 ## How to trigger
+Primary one-click path:
 1. Open app.
-2. Click **Run Health Check** and confirm status renders.
-3. Click **Load Demo Scenario**.
-4. Observe ranked list and stats.
-5. Click **Generate Daily Brief** or **Export Digest**.
+2. Turn **Submission Mode ON**.
+3. Click **Run Judge Fast Path**.
+4. Verify ranked list/stats + generated artifacts.
+
+Explicit fallback two-step (if needed):
+1. Click **Run Health Check** and confirm status renders.
+2. Click **Load Demo Scenario**.
+3. Click **Generate Daily Brief** or **Export Digest**.
 
 ## Fixed fixture (seeded in `app/main.js`)
 1. Grant call closes tonight for community tooling (Funding) -> urgency 5, relevance 4, confidence 4
@@ -47,5 +52,5 @@ Expected top stats after loading demo:
 - Snapshot artifact: [docs/artifacts/loop17-post-loop-qa.png](artifacts/loop17-post-loop-qa.png)
 - Capture context: after deterministic load and health check.
 - Readability check: metadata/action copy remains legible in dense list rows; hierarchy from stats -> controls -> ranked cards stays clear.
-- Judge-path clarity check: fast path is explicit and linear (`Run Health Check` -> `Load Demo Scenario` -> `Generate Daily Brief` / `Export Digest`).
+- Judge-path clarity check: primary fast path is explicit (`Submission Mode ON` -> `Run Judge Fast Path`), with fallback two-step (`Run Health Check` -> `Load Demo Scenario` -> `Generate Daily Brief` / `Export Digest`).
 - Regression check: primary controls and markers visible and unchanged (`Load Demo Scenario`, `Run Health Check`, `Generate Daily Brief`, `Export Digest`, `Health PASS • 4/4 checks passed`, score badges, delete controls).

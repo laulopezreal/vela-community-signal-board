@@ -58,3 +58,9 @@
 ## Known Limitations (MVP-accepted)
 - No backend persistence (localStorage only)
 - No auth / multi-user mode
+
+## Receipt integrity correction (2026-02-28)
+- Revalidated command:
+  - `./ops/verify_receipt_hash.sh docs/artifacts/judge-run-completion-receipt-2026-02-28.md`
+- Result:
+  - `PASS: receipt body hash verified (630d3c800f4c7677a1a37def88ed814af01712e4d4a44215a29fb2b09c9b5717)`

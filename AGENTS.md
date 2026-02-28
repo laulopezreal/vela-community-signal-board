@@ -1,7 +1,7 @@
 # AGENTS.md - Vela Hackathon Workspace
 
 ## Mission
-Ship a complete, submission-ready weekend challenge project with the highest probability of acceptance.
+Ship a complete, submission-ready DEV Weekend Challenge project with the highest probability of acceptance.
 
 ## Session Startup Order
 1. Important.human.md

@@ -1,0 +1,86 @@
+{
+  "exportedAt": "2026-02-28T15:40:00Z",
+  "guild": "Vela Core",
+  "channels": [
+    {
+      "id": "c-grants",
+      "name": "grants",
+      "messages": [
+        {
+          "id": "81021",
+          "threadId": "t-100",
+          "createdAt": "2026-02-28T13:20:00Z",
+          "author": "ops-bot",
+          "reactionCount": 7,
+          "content": "Grant call closes tonight for community tooling. Need owner in next 30 mins."
+        },
+        {
+          "id": "81021",
+          "threadId": "t-100",
+          "createdAt": "2026-02-28T13:20:00Z",
+          "author": "ops-bot",
+          "reactionCount": 7,
+          "content": "Grant call closes tonight for community tooling. Need owner in next 30 mins."
+        },
+        {
+          "id": "81022",
+          "threadId": "t-100",
+          "createdAt": "2026-02-28T13:27:00Z",
+          "author": "lau",
+          "reactionCount": 2,
+          "content": "Sponsor asked for updated deck by tomorrow, otherwise budget pause risk."
+        }
+      ]
+    },
+    {
+      "id": "c-product",
+      "name": "product",
+      "messages": [
+        {
+          "id": "81111",
+          "threadId": "t-200",
+          "createdAt": "2026-02-28T12:50:00Z",
+          "author": "pm",
+          "reactionCount": 4,
+          "content": "Agent workflow integration blocked by missing webhook schema and bug in parser."
+        },
+        {
+          "id": "81112",
+          "threadId": "t-200",
+          "createdAt": "2026-02-28T12:55:00Z",
+          "author": "pm",
+          "reactionCount": 1,
+          "content": "Agent workflow integration blocked by missing webhook schema and bug in parser."
+        },
+        {
+          "id": "81113",
+          "threadId": "t-201",
+          "createdAt": "2026-02-28T12:58:00Z",
+          "author": "pm",
+          "reactionCount": 6,
+          "content": "Built automation playbook template for decision logs, should scale weekly ops."
+        }
+      ]
+    },
+    {
+      "id": "c-noise",
+      "name": "offtopic",
+      "messages": [
+        {
+          "id": "bad-1",
+          "threadId": "t-300",
+          "createdAt": "invalid-date",
+          "author": "anon",
+          "content": "random"
+        },
+        {
+          "id": "",
+          "threadId": "t-301",
+          "createdAt": "2026-02-28T12:20:00Z",
+          "author": "anon",
+          "content": ""
+        }
+      ]
+    }
+  ]
+}

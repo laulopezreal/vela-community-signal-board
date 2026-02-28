@@ -1,0 +1,26 @@
+[
+  {
+    "threadId": "t-100",
+    "source": "Discord #grants",
+    "messageCount": 2,
+    "topWeighted": 2.95,
+    "topSignalId": "sig_ff60f7869b6d",
+    "latestAt": "2026-02-28T13:27:00.000Z"
+  },
+  {
+    "threadId": "t-200",
+    "source": "Discord #product",
+    "messageCount": 2,
+    "topWeighted": 2.75,
+    "topSignalId": "sig_b8e5eeda3ef9",
+    "latestAt": "2026-02-28T12:55:00.000Z"
+  },
+  {
+    "threadId": "t-201",
+    "source": "Discord #product",
+    "messageCount": 1,
+    "topWeighted": 2.2,
+    "topSignalId": "sig_08cee6312c29",
+    "latestAt": "2026-02-28T12:58:00.000Z"
+  }
+]

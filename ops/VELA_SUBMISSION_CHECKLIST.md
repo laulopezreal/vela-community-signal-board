@@ -8,7 +8,7 @@
 ## Packaging
 - [x] README includes: what, why, how to run
 - [x] Setup steps validated from clean start
-- [x] Screenshots/GIF demo prepared (`/home/lauureal/.openclaw/media/browser/39817a38-936e-4f0b-8784-92077db4f6ce.png`)
+- [x] Screenshots/GIF demo prepared (primary repo-local artifact: `docs/artifacts/judge-ready-screenshot.png`)
 
 ## Challenge Fit
 - [x] Community served is explicitly stated

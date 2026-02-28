@@ -1,6 +1,6 @@
 # Community Signal Board
 
-Weekend challenge MVP for builder and operator communities.
+DEV Weekend Challenge MVP for builder and operator communities.
 
 ## Start Here (Judge-Speed Evidence Path)
 1. Overview + demo path: [README.md](./README.md)
@@ -19,15 +19,29 @@ A lightweight app that helps small communities capture scattered updates, rank w
 - Generates a daily brief markdown with action recommendations and explicit scoring formula
 - Copies top actions to clipboard for fast sharing in chat/email
 - Exports a markdown digest with recommended actions for async sharing
-- Loads a deterministic demo scenario for a zero-risk judging walkthrough
-- Runs an in-app health check preflight before live demo
-- Supports a deterministic demo walkthrough via **Load Demo Scenario**
-- Runs an in-app health check preflight before live demo
+- Primary one-click judge path via **Submission Mode + Run Judge Fast Path**
+- Explicit fallback demo flow via **Run Health Check + Load Demo Scenario**
 - Generates daily brief and digest markdown artifacts for judging evidence
 - Safely recovers from corrupted localStorage data without breaking app load
 
 ## Why this community
 Small founder and builder groups miss opportunities when important signals are split across Slack, X, email, and chats. This app creates one clean board and one daily digest.
+
+## Real Value Proof (submission block)
+- **User / job-to-be-done:** founder/operator who must convert scattered community signals into a same-day prioritized action queue.
+- **Baseline (before):** manual multi-channel scanning, ad hoc prioritization, no reproducible ranked output from exported real inputs.
+- **After (with app):** exported JSON signals pass through a deterministic adapter path into a ranked queue using Vela scoring.
+- **Measurable delta:** triage moves from variable manual sorting to one deterministic command run with replayable output artifact.
+- **Proof artifacts:** [docs/artifacts/real-value-before-after.md](docs/artifacts/real-value-before-after.md), [ops/real-input-adapter-contract.md](ops/real-input-adapter-contract.md), [docs/artifacts/sample-exported-signals.json](docs/artifacts/sample-exported-signals.json), [docs/artifacts/real-input-ranked-queue-snapshot.md](docs/artifacts/real-input-ranked-queue-snapshot.md)
+
+## Real input readiness (local, no secrets)
+Run the local ingestion bridge from repo root:
+
+```bash
+node ops/run_local_ingestion.js
+```
+
+This transforms exported external signals into a ranked queue snapshot via the same scoring flow (`urgency * 2 + relevance + confidence`).
 
 ## Run locally
 No build step required.
@@ -79,12 +93,11 @@ Current style upgrades in this loop:
 "Small communities lose real opportunities because high-signal updates are scattered across Slack, email, WhatsApp, and X. Community Signal Board turns that noise into one ranked action queue plus a daily brief and digest in under a minute."
 
 ## Demo narrative (90 seconds)
-1. Click **Run Health Check** and confirm PASS/ATTENTION state.
-2. Click **Load Demo Scenario** for deterministic fixture data.
+1. Turn **Submission Mode ON** and click **Run Judge Fast Path**.
+2. Confirm health/status and deterministic fixture output.
 3. Show ranking order and explain urgency-weighted scoring.
-4. Filter to urgency 4+ for triage speed.
-5. Generate Daily Brief and Export Digest.
-6. Close with impact: fewer missed opportunities, faster shared awareness.
+4. Verify receipt/hash (`ops/verify_receipt_hash.sh`) and artifact links.
+5. Close with impact: fewer missed opportunities, faster shared awareness.
 
 ## Judge-proof artifacts
 - Deterministic proof: [docs/DEMO_PROOF_ARTIFACT.md](docs/DEMO_PROOF_ARTIFACT.md)
