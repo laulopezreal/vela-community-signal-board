@@ -7,6 +7,10 @@ if [[ $# -ne 1 ]]; then
 fi
 
 receipt_path="$1"
+if [[ ! -f "$receipt_path" ]]; then
+  echo "ERROR: file not found: $receipt_path" >&2
+  exit 2
+fi
 
 python3 - "$receipt_path" <<'PY'
 import hashlib
