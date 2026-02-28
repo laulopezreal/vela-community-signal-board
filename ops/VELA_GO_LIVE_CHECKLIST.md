@@ -6,6 +6,7 @@ Operator: Vela (with Palmilila reviewer loop)
 Last updated: 2026-02-28 (discord pipeline loop)
 
 ## MUST-FIX-NOW (GO gate blockers)
+- [ ] Internal governance purge check: confirm AGENTS/Important/Known/Fastfacts/MEMORY/SOUL/operations-journal are NOT present in submission repo.
 - [x] Real value proof block is present with required evidence fields:
   - user/job-to-be-done definition
   - baseline state (before)
