@@ -84,7 +84,6 @@ Current style upgrades in this loop:
 - Deterministic sample digest: [docs/artifacts/sample-digest.md](docs/artifacts/sample-digest.md)
 - Judge-run completion receipt sample: [docs/artifacts/judge-run-completion-receipt-2026-02-28.md](docs/artifacts/judge-run-completion-receipt-2026-02-28.md)
 - Receipt hash verifier (CLI): `./ops/verify_receipt_hash.sh docs/artifacts/judge-run-completion-receipt-2026-02-28.md`
-- Test report: [docs/TEST_REPORT.md](docs/TEST_REPORT.md)
 - Submission copy: [submission/SUBMISSION_DRAFT.md](submission/SUBMISSION_DRAFT.md)
 - Repo readiness path: [submission/REPO_READINESS.md](submission/REPO_READINESS.md)
 - Jury access fallback pack (artifact-first, no public-repo assumption): [docs/JURY_ACCESS_FALLBACK_PACK.md](docs/JURY_ACCESS_FALLBACK_PACK.md)
@@ -101,5 +100,4 @@ Current style upgrades in this loop:
 
 ## Judge-proof artifacts
 - Deterministic proof: [docs/DEMO_PROOF_ARTIFACT.md](docs/DEMO_PROOF_ARTIFACT.md)
-- Test report: [docs/TEST_REPORT.md](docs/TEST_REPORT.md)
 - Judge evidence pack (quick index): [docs/SUBMISSION_EVIDENCE_PACK.md](docs/SUBMISSION_EVIDENCE_PACK.md)

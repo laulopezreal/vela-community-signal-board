@@ -23,7 +23,6 @@ Use this pack if the GitHub repo URL is not directly accessible in your judging 
    - From repo root: `./ops/verify_receipt_hash.sh docs/artifacts/judge-run-completion-receipt-2026-02-28.md`
    - From `docs/`: `../ops/verify_receipt_hash.sh artifacts/judge-run-completion-receipt-2026-02-28.md`
 4. Validate quality and test coverage:
-   - [docs/TEST_REPORT.md](./TEST_REPORT.md)
 
 ## Direct local-proof links
 - Product/demo narrative: [README.md](../README.md)

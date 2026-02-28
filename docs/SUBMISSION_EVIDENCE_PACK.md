@@ -13,7 +13,7 @@ Use this as a 30-second proof index during review.
 
 ## Reliability + Technical Quality
 - Core implementation: [app/main.js](../app/main.js)
-- Manual validation coverage: [docs/TEST_REPORT.md](./TEST_REPORT.md)
+- Manual validation coverage: QA checks summarized in this evidence pack and reproducible commands below
 
 ## Determinism + Demo Safety
 - Fixed fixture and expected ranking outputs: [docs/DEMO_PROOF_ARTIFACT.md](./DEMO_PROOF_ARTIFACT.md)
