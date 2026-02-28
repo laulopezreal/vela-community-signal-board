@@ -3,8 +3,7 @@
 This repository is submission-facing.
 Internal governance and private operator memory must not be included in hackathon deliverables.
 
-Internal files were moved to private workspace storage:
-`/home/lauureal/.openclaw/workspace/ops/private/vela-governance-20260228`
+Internal files were moved to private workspace storage outside this submission repository.
 
 Rule:
 - Keep only product, evidence, and submission-facing docs in this repo.
