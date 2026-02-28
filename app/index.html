@@ -15,13 +15,25 @@
           <p>Professional signal triage for builder communities.</p>
         </div>
       </div>
-      <div class="meta-chip">MVP • Weekend Challenge</div>
+      <div class="header-actions">
+        <button id="toggle-submission-mode" type="button" class="btn-muted" aria-pressed="false">Submission Mode: Off</button>
+        <div class="meta-chip">MVP • Weekend Challenge</div>
+      </div>
     </header>
 
-    <section class="shell capability-strip" aria-label="Core capabilities">
+    <section class="shell capability-strip" aria-label="Core capabilities" data-submission-optional="true">
       <p><strong>Local-first</strong><span>No backend needed for demo reliability.</span></p>
       <p><strong>Priority ranking</strong><span>Urgency-weighted score for fast focus.</span></p>
       <p><strong>Digest-ready</strong><span>One-click markdown export for async sharing.</span></p>
+    </section>
+
+    <section id="submission-spotlight" class="shell submission-spotlight" aria-label="Submission demo path" hidden>
+      <p class="spotlight-title">Submission demo path (judge-speed)</p>
+      <ol>
+        <li>Run <strong>Demo Reset + Health Run</strong> to establish deterministic baseline.</li>
+        <li>Run <strong>Generate Final Evidence Bundle</strong> to export all proof artifacts in one click.</li>
+        <li>Open generated files for fast copy-paste into Devpost form.</li>
+      </ol>
     </section>
 
     <section class="shell stats" aria-label="Summary stats">
@@ -44,7 +56,7 @@
     </section>
 
     <main class="layout shell">
-      <section class="card form-card">
+      <section class="card form-card" data-submission-optional="true">
         <h2>Add Signal</h2>
         <p class="section-copy">Capture one update at a time. Keep titles action-oriented and source-specific.</p>
         <div class="template-controls" aria-label="Community templates">
@@ -73,9 +85,11 @@
           <div class="score-grid">
             <label>Urgency (1-5)<input id="urgency" type="number" min="1" max="5" value="3" required /></label>
             <label>Relevance (1-5)<input id="relevance" type="number" min="1" max="5" value="3" required /></label>
-            <label>Confidence (1-5)<input id="confidence" type="number" min="1" max="5" value="3" required /></label>
+            <label>Confidence (1-5)<input id="confidence" type="number" min="1" max="5" value="3" required aria-describedby="confidence-help" /></label>
           </div>
+          <p id="confidence-help" class="field-help">Confidence = how sure you are the signal is real, timely, and worth action.</p>
           <label>Owner<input id="owner" maxlength="80" placeholder="Name, team, or role" /></label>
+          <p id="form-error" class="form-error" role="alert" aria-live="polite" hidden></p>
           <button type="submit">Add Signal</button>
         </form>
       </section>
@@ -83,9 +97,12 @@
       <section class="card list-card">
         <div class="toolbar">
           <h2>Signals</h2>
+          <p id="judge-path-hint" class="judge-path-hint">Fast judge path: <strong>Run Judge Fast Path</strong> (one click), or <strong>Demo Reset + Health Run</strong> -> <strong>Generate Final Evidence Bundle</strong>.</p>
           <div class="filters">
-            <input id="search" type="search" placeholder="Search title or source" />
-            <select id="filter-category">
+            <label class="visually-hidden" for="search">Search signals</label>
+            <input id="search" class="submission-optional-control" type="search" placeholder="Search title or source" aria-label="Search signals by title or source" />
+            <label class="visually-hidden" for="filter-category">Filter by category</label>
+            <select id="filter-category" class="submission-optional-control" aria-label="Filter signals by category">
               <option value="all">All categories</option>
               <option value="Opportunity">Opportunity</option>
               <option value="Funding">Funding</option>
@@ -93,17 +110,23 @@
               <option value="Tool">Tool</option>
               <option value="Hiring">Hiring</option>
             </select>
-            <select id="filter-urgency">
+            <label class="visually-hidden" for="filter-urgency">Filter by urgency</label>
+            <select id="filter-urgency" class="submission-optional-control" aria-label="Filter signals by urgency threshold">
               <option value="0">Any urgency</option>
               <option value="4">Urgency 4+</option>
               <option value="5">Urgency 5 only</option>
             </select>
-            <button id="clear-filters" type="button" class="btn-muted">Clear</button>
-            <button id="load-demo" type="button" class="btn-muted">Load Demo Scenario</button>
-            <button id="generate-brief" type="button" class="btn-muted">Generate Daily Brief</button>
-            <button id="copy-brief" type="button" class="btn-muted">Copy Top Actions</button>
-            <button id="run-health-check" type="button" class="btn-muted">Run Health Check</button>
-            <button id="export-digest" type="button">Export Digest</button>
+            <button id="clear-filters" type="button" class="btn-muted submission-optional-control">Clear</button>
+            <button id="load-demo" type="button" class="btn-muted submission-optional-control">Load Demo Scenario</button>
+            <button id="run-judge-fast-path" type="button" class="btn-muted btn-primary-path" aria-describedby="judge-path-hint" aria-label="Run the full judge fast path macro">Run Judge Fast Path</button>
+            <button id="run-demo-reset-health" type="button" class="btn-muted btn-primary-path" aria-describedby="judge-path-hint" aria-label="Run demo reset and health macro">Demo Reset + Health Run</button>
+            <button id="generate-final-evidence-bundle" type="button" class="btn-muted btn-primary-path" aria-describedby="judge-path-hint">Generate Final Evidence Bundle</button>
+            <button id="generate-brief" type="button" class="btn-muted submission-optional-control">Generate Daily Brief</button>
+            <button id="copy-brief" type="button" class="btn-muted submission-optional-control">Copy Top Actions</button>
+            <button id="run-health-check" type="button" class="btn-muted submission-optional-control">Run Health Check</button>
+            <button id="generate-canonical-evidence" type="button" class="btn-muted submission-optional-control">Generate Canonical Evidence Artifacts</button>
+            <button id="generate-judge-snapshot" type="button" class="btn-muted submission-optional-control">Generate Judge Snapshot</button>
+            <button id="export-digest" type="button" class="submission-optional-control">Export Digest</button>
           </div>
         </div>
         <p id="health-status" class="health-status" role="status" aria-live="polite">Health not run in this session.</p>
@@ -121,6 +144,7 @@
           <h3 class="item-title"></h3>
           <p class="item-meta"></p>
           <p class="item-metrics"></p>
+          <p class="item-action"></p>
         </div>
         <div class="item-right">
           <span class="score"></span>
