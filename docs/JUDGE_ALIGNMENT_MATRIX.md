@@ -16,9 +16,15 @@
 ## Access Note (Judge-Facing)
 If the repo URL is not accessible in your environment, use [docs/JURY_ACCESS_FALLBACK_PACK.md](./JURY_ACCESS_FALLBACK_PACK.md) for an artifact-first verification path.
 
-## Demo preflight (judge-facing)
+## Demo path normalization (judge-facing)
+Primary path:
+1. Turn **Submission Mode ON**.
+2. Click **Run Judge Fast Path**.
+3. Walk ranking order and urgency-weighted scoring.
+4. Verify receipt/hash and artifact links.
+5. Close on impact.
+
+Explicit fallback path:
 1. Click **Run Health Check** and confirm PASS/ATTENTION state is visible.
 2. Click **Load Demo Scenario**.
-3. Walk ranking order and urgency-weighted scoring.
-4. Filter to urgency 4+ for triage speed.
-5. Generate Daily Brief, then Export Digest, and close on impact.
+3. Generate Daily Brief, then Export Digest.
