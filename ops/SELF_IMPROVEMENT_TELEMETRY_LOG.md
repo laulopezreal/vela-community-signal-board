@@ -186,7 +186,7 @@ Next hypothesis: Add a tiny "deterministic verification" helper action to genera
 
 ---
 Cycle ID: VELA-AUTO-2026-02-28-08
-Timestamp (CET): 2026-02-28 01:42
+Timestamp (CET): 2026-02-28 01:36
 Objective: Implement judge-facing canonical evidence automation in one click with deterministic integrity validation
 Context/input snapshot: Loop-8 directive: add one-click canonical artifact generation, emit fixed brief/digest from demo fixture, validate checksum + line-count consistency, sync evidence pack/changelog/telemetry; no submission action.
 Actions executed:
@@ -532,7 +532,7 @@ Next hypothesis: If relaunched, close the second gap with docs-only evidence dis
 
 ---
 Cycle ID: VELA-AUTO-2026-02-28-23
-Timestamp (CET): 2026-02-28 02:09
+Timestamp (CET): 2026-02-28 02:15
 Objective: Docs-only evidence discoverability ordering polish for judge speed.
 Context/input snapshot: Manager-approved loop 23; establish one "start here" cross-link path across README/evidence/fallback packs; concise deterministic-proof wording; no UI/control/topology changes; run syntax + link-integrity sweep; sync telemetry/changelog.
 Actions executed:
@@ -553,7 +553,7 @@ Next hypothesis: Optional micro-pass to mirror the same 3-step start-path snippe
 
 ---
 Cycle ID: VELA-AUTO-2026-02-28-24
-Timestamp (CET): 2026-02-28 02:11
+Timestamp (CET): 2026-02-28 02:16
 Objective: Docs-only submission-copy discoverability parity with existing Start Here evidence routing.
 Context/input snapshot: Manager-approved loop 24. Mirror README/evidence/fallback 3-step path inside `submission/SUBMISSION_DRAFT.md`; keep copy concise and deterministic-proof oriented; no UI/control/topology/behavior changes; rerun scoped checks; sync logs.
 Actions executed:
@@ -574,7 +574,7 @@ Next hypothesis: Hold docs unless requested; optional future zero-diff sweep can
 
 ---
 Cycle ID: VELA-AUTO-2026-02-28-25
-Timestamp (CET): 2026-02-28 02:13
+Timestamp (CET): 2026-02-28 02:17
 Objective: Strict cross-doc heading/label uniformity sweep for submission-facing docs to maximize judge cognitive fluency.
 Context/input snapshot: Loop-25 directive to normalize equivalent section labels/callout names across README/submission/evidence/fallback/matrix docs; keep deterministic-proof wording + Start Here path perfectly consistent; no UI/control/topology changes; rerun touched-doc checks; sync logs.
 Actions executed:
