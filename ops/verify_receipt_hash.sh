@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -ne 1 ]]; then
-  echo "Usage: $0 <receipt-markdown-path>" >&2
+  echo "Usage: $0 <receipt-path>" >&2
   exit 2
 fi
 
@@ -12,40 +12,31 @@ if [[ ! -f "$receipt_path" ]]; then
   exit 2
 fi
 
-declared_hash="$(sed -nE 's/^Receipt SHA-256 \(body\): ([0-9a-f]{64})$/\1/p' "$receipt_path" | tail -n 1)"
-if [[ -z "$declared_hash" ]]; then
-  echo "ERROR: declared receipt hash line not found in $receipt_path" >&2
-  exit 1
-fi
+python3 - "$receipt_path" <<'PY'
+import hashlib
+import pathlib
+import re
+import sys
 
-body_hash="$(python3 - "$receipt_path" <<'PY'
-from pathlib import Path
-import hashlib,sys
-p=Path(sys.argv[1])
-s=p.read_text(encoding='utf-8')
-marker='\nReceipt SHA-256 (body): '
-if marker not in s:
-    print('')
-    raise SystemExit(0)
-body=s.split(marker,1)[0].rstrip('\n')+'\n'
-print(hashlib.sha256(body.encode('utf-8')).hexdigest())
+path = pathlib.Path(sys.argv[1])
+text = path.read_text(encoding='utf-8')
+
+marker = "\n\nReceipt SHA-256 (body): "
+if marker not in text:
+    print(f"FAIL: missing receipt hash marker in {path}")
+    sys.exit(1)
+
+body, tail = text.split(marker, 1)
+line = tail.splitlines()[0].strip()
+if not re.fullmatch(r"[0-9a-f]{64}", line):
+    print(f"FAIL: invalid embedded hash format in {path}: {line!r}")
+    sys.exit(1)
+
+actual = hashlib.sha256(body.encode("utf-8")).hexdigest()
+if actual == line:
+    print(f"PASS: receipt body hash verified ({actual})")
+    sys.exit(0)
+
+print(f"FAIL: receipt body hash mismatch (embedded={line}, recomputed={actual})")
+sys.exit(1)
 PY
-)"
-
-if [[ -z "$body_hash" ]]; then
-  echo "ERROR: failed to compute body hash" >&2
-  exit 1
-fi
-
-if [[ "$declared_hash" == "$body_hash" ]]; then
-  echo "PASS: receipt hash matches"
-  echo "file: $receipt_path"
-  echo "sha256: $body_hash"
-  exit 0
-fi
-
-echo "FAIL: receipt hash mismatch" >&2
-echo "file: $receipt_path" >&2
-echo "declared: $declared_hash" >&2
-echo "computed: $body_hash" >&2
-exit 1
