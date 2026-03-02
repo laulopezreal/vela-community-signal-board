@@ -3,6 +3,7 @@ const fs = require('fs');
 const http = require('http');
 const { URL } = require('url');
 const { processEvents, PATHS } = require('../../lib/phase1/reliability_pipeline');
+const { buildSnapshot: buildTaskmasterSnapshot, applyMutation: applyTaskmasterMutation } = require('../../lib/phase1/taskmaster_store');
 const { createDiscordConnector } = require('./discord_connector');
 
 const PORT = Number(process.env.PHASE1_PORT || 8791);
@@ -190,6 +191,20 @@ async function handler(req, res) {
       const traceId = String(payload.traceId || req.headers['x-trace-id'] || '').trim() || undefined;
       const { result } = await ingestAndPersist(envelopes, traceId);
       return sendJson(res, 200, { ok: true, connector: 'discord', events: envelopes.length, ingest: result });
+    } catch (err) {
+      return sendJson(res, 400, { ok: false, error: err.message });
+    }
+  }
+
+  if (req.method === 'GET' && url.pathname === '/v1/taskmaster/snapshot') {
+    return sendJson(res, 200, buildTaskmasterSnapshot());
+  }
+
+  if (req.method === 'POST' && url.pathname === '/v1/taskmaster/mutations') {
+    try {
+      const payload = await readJsonBody(req);
+      const result = applyTaskmasterMutation(payload);
+      return sendJson(res, result.status || 200, result);
     } catch (err) {
       return sendJson(res, 400, { ok: false, error: err.message });
     }

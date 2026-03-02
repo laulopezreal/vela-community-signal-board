@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Taskmaster Dashboard</title>
+    <link rel="stylesheet" href="./taskmaster.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>Taskmaster Dashboard</h1>
+        <p>Queue clarity, SLA risk, ownership, and execution flow.</p>
+      </div>
+      <a href="../index.html" class="ghost-link">Back to board</a>
+    </header>
+
+    <section class="today-focus" aria-labelledby="today-focus-title">
+      <h2 id="today-focus-title">Today focus</h2>
+      <ol id="today-focus-list"></ol>
+    </section>
+
+    <section class="workload" aria-labelledby="workload-title">
+      <h2 id="workload-title">Assignee workload</h2>
+      <ul id="workload-list"></ul>
+    </section>
+
+    <main id="lanes" class="lanes" aria-label="Task lanes"></main>
+
+    <aside id="task-drawer" class="task-drawer" hidden aria-live="polite">
+      <button id="close-drawer" class="btn-muted" type="button">Close</button>
+      <h3 id="drawer-title"></h3>
+      <p id="drawer-meta"></p>
+      <p><strong>Blocker:</strong> <span id="drawer-blocker">None</span></p>
+      <p><strong>Dependencies:</strong> <span id="drawer-deps">None</span></p>
+      <p id="conflict-msg" class="conflict" hidden></p>
+    </aside>
+
+    <template id="lane-template">
+      <section class="lane">
+        <header>
+          <h3 class="lane-name"></h3>
+          <span class="lane-count"></span>
+          <span class="risk-badge"></span>
+        </header>
+        <ul class="lane-list"></ul>
+      </section>
+    </template>
+
+    <template id="task-template">
+      <li class="task-card">
+        <div>
+          <strong class="task-title"></strong>
+          <p class="task-meta"></p>
+        </div>
+        <div class="task-actions">
+          <label>
+            Move
+            <select class="lane-select" aria-label="Move task lane"></select>
+          </label>
+          <label>
+            Assign
+            <input class="owner-input" maxlength="60" placeholder="Owner" />
+          </label>
+          <button type="button" class="save-btn">Save</button>
+          <button type="button" class="details-btn btn-muted">Details</button>
+        </div>
+      </li>
+    </template>
+
+    <script src="./taskmaster.js"></script>
+  </body>
+</html>
