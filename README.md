@@ -44,6 +44,12 @@ node ops/run_local_ingestion.js
 
 This transforms exported external signals into a ranked queue snapshot via the same scoring flow (`urgency * 2 + relevance + confidence`).
 
+## Checkpoint #1 phase0 API (contracts + ingest + board)
+- Contracts: `ops/phase0/contracts.json`
+- API server: `node ops/phase0/server.js`
+- Fixture E2E demo: `node ops/phase0/demo_phase0_flow.js`
+- Full checkpoint notes: `docs/CHECKPOINT_1_PHASE0.md`
+
 ## Run locally
 No build step required.
 
