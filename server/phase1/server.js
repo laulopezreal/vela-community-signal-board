@@ -14,6 +14,7 @@ const metrics = {
   ingestDuplicateIgnoredTotal: 0,
   ingestDlqRoutedTotal: 0,
   lastTraceId: null,
+  discordGatewayEventsTotal: { received: 0, accepted: 0, dropped: 0 },
 };
 
 const sseClients = new Set();
@@ -59,6 +60,14 @@ function broadcastBoardUpdate(update) {
   for (const client of sseClients) client.write(data);
 }
 
+
+function incGatewayMetric(status, labels = {}) {
+  if (!Object.prototype.hasOwnProperty.call(metrics.discordGatewayEventsTotal, status)) return;
+  metrics.discordGatewayEventsTotal[status] += 1;
+  const detail = Object.entries(labels).map(([k, v]) => `${k}=${v}`).join(' ');
+  console.log(`PHASE1_DISCORD_GATEWAY status=${status}${detail ? ` ${detail}` : ''}`);
+}
+
 function metricsText() {
   return [
     '# HELP phase1_ingest_requests_total Total ingest requests',
@@ -73,6 +82,11 @@ function metricsText() {
     '# HELP phase1_ingest_dlq_routed_total Total DLQ routed events',
     '# TYPE phase1_ingest_dlq_routed_total counter',
     `phase1_ingest_dlq_routed_total ${metrics.ingestDlqRoutedTotal}`,
+    '# HELP phase1_discord_gateway_events_total Discord gateway events by status',
+    '# TYPE phase1_discord_gateway_events_total counter',
+    `phase1_discord_gateway_events_total{status="received"} ${metrics.discordGatewayEventsTotal.received}`,
+    `phase1_discord_gateway_events_total{status="accepted"} ${metrics.discordGatewayEventsTotal.accepted}`,
+    `phase1_discord_gateway_events_total{status="dropped"} ${metrics.discordGatewayEventsTotal.dropped}`,
     '# HELP phase1_uptime_seconds Process uptime in seconds',
     '# TYPE phase1_uptime_seconds gauge',
     `phase1_uptime_seconds ${Math.floor((Date.now() - STARTED_AT) / 1000)}`,
@@ -107,17 +121,30 @@ const connector = createDiscordConnector({
   guildId: process.env.DISCORD_GUILD_ID,
   channelAllowlist: process.env.DISCORD_CHANNEL_ALLOWLIST || '',
 });
+connector.on('gateway_metric', (metric) => {
+  const status = metric.status || 'dropped';
+  incGatewayMetric(status, { event: metric.event || 'unknown', reason: metric.reason || 'none' });
+});
+
+connector.on('event', async ({ envelope, traceId }) => {
+  try {
+    await ingestAndPersist([envelope], traceId);
+  } catch (err) {
+    incGatewayMetric('dropped', { event: 'MESSAGE_CREATE', reason: `persist_error:${err.message}` });
+  }
+});
+
 connector.start();
 
 async function handler(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
 
   if (req.method === 'GET' && url.pathname === '/readyz') {
-    const ready = connector.config.enabled;
+    const ready = connector.isReady();
     return sendJson(res, ready ? 200 : 503, {
       ok: ready,
       service: 'phase1-live-ingest',
-      connector: connector.config,
+      connector: { ...connector.config, ...connector.status() },
       dataPaths: PATHS,
     });
   }
