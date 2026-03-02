@@ -96,3 +96,10 @@ node scripts/phase1/replay_dlq.js --from 2026-03-02T02:00:00Z --to 2026-03-02T03
 ```
 
 Persistence files (`data/phase1/`): `idempotency.json`, `normalized-signals.json`, `ranked-board.json`, `dead-letter-queue.jsonl`.
+
+
+## Phase 2 Preview
+Next implementation lane adds realtime board updates and observability baseline:
+- SSE updates for board refresh events
+- `/metrics` and `/readyz` endpoints
+- basic alerting/runbook support
