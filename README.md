@@ -35,6 +35,11 @@ python3 -m http.server 5173
 
 Open: http://localhost:5173
 
+## Phase0 API quickcheck
+- Contracts: `contracts/phase0/contracts.json`
+- API server: `node server/phase0/server.js`
+- Deterministic fixture demo: `node scripts/phase0/demo_phase0_flow.js`
+
 ## Challenge alignment
 ### Value Proposition
 Helps real communities convert scattered signals into a same-day action queue.
