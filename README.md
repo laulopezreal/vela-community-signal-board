@@ -67,3 +67,27 @@ Not included (intentional):
 
 ## 30-second opening narrative
 Small communities lose opportunities because high-signal updates are fragmented across chats and channels. Community Signal Board turns that noise into one ranked action queue plus a daily brief and digest in under a minute.
+
+## Phase1 reliability pipeline (PRD-02)
+Run deterministic reliability path with idempotency + retry + DLQ:
+
+```bash
+node scripts/phase1/run_phase1_pipeline.js data/phase1/sample-phase1-events.json
+```
+
+Inspect DLQ entries:
+
+```bash
+node scripts/phase1/inspect_dlq.js
+node scripts/phase1/inspect_dlq.js --trace <traceId>
+node scripts/phase1/inspect_dlq.js --from 2026-03-02T02:00:00Z --to 2026-03-02T03:00:00Z
+```
+
+Replay failed entries by trace ID or time range:
+
+```bash
+node scripts/phase1/replay_dlq.js --trace <traceId>
+node scripts/phase1/replay_dlq.js --from 2026-03-02T02:00:00Z --to 2026-03-02T03:00:00Z
+```
+
+Persistence files (`data/phase1/`): `idempotency.json`, `normalized-signals.json`, `ranked-board.json`, `dead-letter-queue.jsonl`.
