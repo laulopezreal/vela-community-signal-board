@@ -1,0 +1,13 @@
+{
+  "events": [
+    {
+      "provider": "discord",
+      "event_type": "message",
+      "id": "evt-valid-1",
+      "threadId": "thread-valid-1",
+      "channel": "Discord #ops",
+      "content": "client deal update needs automation template",
+      "createdAt": "2026-03-02T00:00:00Z"
+    }
+  ]
+}

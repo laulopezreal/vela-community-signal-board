@@ -95,8 +95,33 @@ node scripts/phase1/replay_dlq.js --trace <traceId>
 node scripts/phase1/replay_dlq.js --from 2026-03-02T02:00:00Z --to 2026-03-02T03:00:00Z
 ```
 
-Persistence files (`data/phase1/`): `idempotency.json`, `normalized-signals.json`, `ranked-board.json`, `dead-letter-queue.jsonl`.
+Persistence files (`data/phase1/`): `idempotency.json`, `normalized-signals.json`, `ranked-board.json`, `dead-letter-queue.jsonl`, `contract-validation-report.json`.
 
+Phase1 contract validation quick checks:
+
+```bash
+node scripts/phase1/test_contracts.js
+node scripts/phase1/generate_contract_report.js
+```
+
+Contract docs:
+- `contracts/phase1/signal.schema.v1.json`
+- `contracts/phase1/read-model.contract.v1.json`
+- `contracts/phase1/README.md`
+
+## Acceptance + UX states (PRD)
+- Shared state resolver: `app/ux-state.js`
+- Canonical states on OPS + Taskmaster dashboard cards:
+  - loading, ready, empty, partial, recoverable error, blocking error
+- State-specific CTAs (retry, refresh, open runbook)
+- Last updated + freshness age label per dashboard
+- Screen-reader announcements via aria-live status regions
+- Filter/cursor preservation during refresh/error transitions
+
+Validation:
+```bash
+node scripts/ux_state_transitions_test.js
+```
 
 ## Phase 2 Preview
 Next implementation lane adds realtime board updates and observability baseline:

@@ -1,0 +1,19 @@
+{
+  "$id": "petalos://contracts/phase1/read-model.contract.v1.json",
+  "title": "Dashboard Read Model Contract v1",
+  "endpoint": "/v1/live/board",
+  "required_fields": ["ok", "updatedAt", "traceId", "rankedSignals", "normalizedSignals"],
+  "signal_required_fields": [
+    "contractVersion",
+    "signalId",
+    "externalId",
+    "threadId",
+    "source",
+    "title",
+    "content",
+    "createdAt",
+    "weighted",
+    "traceId",
+    "ingestIdempotencyKey"
+  ]
+}

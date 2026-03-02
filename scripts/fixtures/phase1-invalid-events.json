@@ -1,0 +1,13 @@
+{
+  "events": [
+    {
+      "provider": "discord",
+      "event_type": "message",
+      "id": "",
+      "threadId": "thread-invalid-1",
+      "channel": "Discord #ops",
+      "content": "missing id should fail",
+      "createdAt": "2026-03-02T00:01:00Z"
+    }
+  ]
+}
