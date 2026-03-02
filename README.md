@@ -5,8 +5,8 @@ DEV Weekend Challenge MVP for builder and operator communities.
 ## Start Here (Judge-Speed Evidence Path)
 Submission rules authority: [submission/SUBMISSION_RULES_SSOT.md](submission/SUBMISSION_RULES_SSOT.md)
 1. Overview + demo path: [README.md](./README.md)
-2. Deterministic proof index: [docs/SUBMISSION_EVIDENCE_PACK.md](./docs/SUBMISSION_EVIDENCE_PACK.md)
-3. Access-constrained fallback: [docs/JURY_ACCESS_FALLBACK_PACK.md](./docs/JURY_ACCESS_FALLBACK_PACK.md)
+2. Deterministic proof index: [/home/lauureal/.openclaw/workspace/projects/vela-community-signal-board/docs/SUBMISSION_EVIDENCE_PACK.md](.//home/lauureal/.openclaw/workspace/projects/vela-community-signal-board/docs/SUBMISSION_EVIDENCE_PACK.md)
+3. Access-constrained fallback: [/home/lauureal/.openclaw/workspace/projects/vela-community-signal-board/docs/JURY_ACCESS_FALLBACK_PACK.md](.//home/lauureal/.openclaw/workspace/projects/vela-community-signal-board/docs/JURY_ACCESS_FALLBACK_PACK.md)
 
 ## One-line pitch
 A lightweight app that helps small communities capture scattered updates, rank what matters now, and export a daily action digest.
@@ -93,7 +93,7 @@ Current style upgrades in this loop:
 - Receipt hash verifier (CLI): `./ops/verify_receipt_hash.sh docs/artifacts/judge-run-completion-receipt-2026-02-28.md`
 - Submission copy: [submission/SUBMISSION_DRAFT.md](submission/SUBMISSION_DRAFT.md)
 - Repo readiness path: [submission/REPO_READINESS.md](submission/REPO_READINESS.md)
-- Jury access fallback pack (artifact-first, no public-repo assumption): [docs/JURY_ACCESS_FALLBACK_PACK.md](docs/JURY_ACCESS_FALLBACK_PACK.md)
+- Jury access fallback pack (artifact-first, no public-repo assumption): [/home/lauureal/.openclaw/workspace/projects/vela-community-signal-board/docs/JURY_ACCESS_FALLBACK_PACK.md](/home/lauureal/.openclaw/workspace/projects/vela-community-signal-board/docs/JURY_ACCESS_FALLBACK_PACK.md)
 
 ## 30-second opening narrative
 "Small communities lose real opportunities because high-signal updates are scattered across Slack, email, WhatsApp, and X. Community Signal Board turns that noise into one ranked action queue plus a daily brief and digest in under a minute."
@@ -106,5 +106,14 @@ Current style upgrades in this loop:
 5. Close with impact: fewer missed opportunities, faster shared awareness.
 
 ## Judge-proof artifacts
-- Deterministic proof: [docs/DEMO_PROOF_ARTIFACT.md](docs/DEMO_PROOF_ARTIFACT.md)
-- Judge evidence pack (quick index): [docs/SUBMISSION_EVIDENCE_PACK.md](docs/SUBMISSION_EVIDENCE_PACK.md)
+- Deterministic proof: [/home/lauureal/.openclaw/workspace/projects/vela-community-signal-board/docs/DEMO_PROOF_ARTIFACT.md](/home/lauureal/.openclaw/workspace/projects/vela-community-signal-board/docs/DEMO_PROOF_ARTIFACT.md)
+- Judge evidence pack (quick index): [/home/lauureal/.openclaw/workspace/projects/vela-community-signal-board/docs/SUBMISSION_EVIDENCE_PACK.md](/home/lauureal/.openclaw/workspace/projects/vela-community-signal-board/docs/SUBMISSION_EVIDENCE_PACK.md)
+
+
+## Workspace Docs/Ops Location
+Repository no longer stores operational docs or ops scripts.
+Canonical location:
+- `/home/lauureal/.openclaw/workspace/projects/vela-community-signal-board/docs`
+- `/home/lauureal/.openclaw/workspace/projects/vela-community-signal-board/ops`
+
+For submission-critical references, use the workspace project folder paths above.
