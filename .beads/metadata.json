@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_database": "vela_community_signal_board",
+  "project_id": "a0350595-84d9-4302-a9c8-f449e66687c0"
+}
