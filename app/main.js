@@ -1,5 +1,7 @@
 const STORAGE_KEY = 'community-signal-board-v1';
 const FORM_DRAFT_KEY = 'community-signal-board-form-draft-v1';
+const WORKFLOW_STATUSES = ['new', 'triaged', 'in_progress', 'done', 'dismissed'];
+const DEFAULT_URGENCY_ALERT_THRESHOLD = 4;
 
 const TEMPLATE_PRESETS = {
   startup: {
@@ -88,19 +90,32 @@ function safeLoadItems() {
     if (!Array.isArray(parsed)) return [];
 
     return parsed
-      .map((item) => ({
-        id: typeof item.id === 'string' ? item.id : `legacy-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        title: cleanText(String(item.title || '')),
-        source: cleanText(String(item.source || '')),
-        category: ['Opportunity', 'Funding', 'Event', 'Tool', 'Hiring'].includes(item.category)
-          ? item.category
-          : 'Opportunity',
-        urgency: clampInt(item.urgency, 1, 5, 3),
-        relevance: clampInt(item.relevance, 1, 5, 3),
-        confidence: clampInt(item.confidence, 1, 5, 3),
-        owner: cleanText(String(item.owner || '')) || 'Unassigned',
-        createdAt: Number.isFinite(Number(item.createdAt)) ? Number(item.createdAt) : Date.now(),
-      }))
+      .map((item) => {
+        const owner = cleanText(String(item.owner || '')) || 'Unassigned';
+        const assignedUserId = cleanText(String(item.assigned_user_id || '')) || (owner !== 'Unassigned' ? owner.toLowerCase().replace(/\s+/g, '.') : '');
+        const dueAt = parseDueAt(item.due_at);
+        const status = WORKFLOW_STATUSES.includes(item.status) ? item.status : 'new';
+
+        return {
+          id: typeof item.id === 'string' ? item.id : `legacy-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          title: cleanText(String(item.title || '')),
+          source: cleanText(String(item.source || '')),
+          category: ['Opportunity', 'Funding', 'Event', 'Tool', 'Hiring'].includes(item.category)
+            ? item.category
+            : 'Opportunity',
+          urgency: clampInt(item.urgency, 1, 5, 3),
+          relevance: clampInt(item.relevance, 1, 5, 3),
+          confidence: clampInt(item.confidence, 1, 5, 3),
+          owner,
+          status,
+          due_at: dueAt,
+          assigned_user_id: assignedUserId,
+          action_notes: cleanText(String(item.action_notes || '')),
+          comments: normalizeComments(item.comments),
+          activity_log: normalizeActivityLog(item.activity_log),
+          createdAt: Number.isFinite(Number(item.createdAt)) ? Number(item.createdAt) : Date.now(),
+        };
+      })
       .filter((item) => item.title && item.source);
   } catch {
     return [];
@@ -136,6 +151,8 @@ const els = {
   empty: document.getElementById('empty'),
   emptyCopy: document.getElementById('empty-copy'),
   exportBtn: document.getElementById('export-digest'),
+  deliverDailyBtn: document.getElementById('deliver-daily-priority'),
+  deliverWeeklyBtn: document.getElementById('deliver-weekly-team'),
   briefBtn: document.getElementById('generate-brief'),
   copyBriefBtn: document.getElementById('copy-brief'),
   runHealthBtn: document.getElementById('run-health-check'),
@@ -147,6 +164,8 @@ const els = {
   submissionToggleBtn: document.getElementById('toggle-submission-mode'),
   submissionSpotlight: document.getElementById('submission-spotlight'),
   healthStatus: document.getElementById('health-status'),
+  notificationMeta: document.getElementById('notification-meta'),
+  notificationList: document.getElementById('notification-list'),
   tpl: document.getElementById('item-template'),
   statTotal: document.getElementById('stat-total'),
   statHigh: document.getElementById('stat-high'),
@@ -171,6 +190,53 @@ function clampInt(value, min, max, fallback) {
 
 function cleanText(value) {
   return value.trim().replace(/\s+/g, ' ');
+}
+
+
+function parseDueAt(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : null;
+}
+
+function normalizeComments(comments) {
+  if (!Array.isArray(comments)) return [];
+  return comments
+    .map((comment) => ({
+      at: Number.isFinite(Number(comment.at)) ? Number(comment.at) : Date.now(),
+      text: cleanText(String(comment.text || '')),
+    }))
+    .filter((comment) => comment.text)
+    .slice(-20);
+}
+
+function normalizeActivityLog(entries) {
+  if (!Array.isArray(entries)) return [];
+  return entries
+    .map((entry) => ({
+      at: Number.isFinite(Number(entry.at)) ? Number(entry.at) : Date.now(),
+      message: cleanText(String(entry.message || '')),
+    }))
+    .filter((entry) => entry.message)
+    .slice(-30);
+}
+
+function formatDate(value) {
+  if (!value) return 'none';
+  const dt = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(dt.getTime())) return value;
+  return dt.toISOString().slice(0, 10);
+}
+
+function appendActivity(item, message) {
+  item.activity_log.push({ at: Date.now(), message: cleanText(message) });
+  item.activity_log = item.activity_log.slice(-30);
+}
+
+function statusLabel(status) {
+  if (status === 'in_progress') return 'In progress';
+  return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
 function safeSetLocal(key, value) {
@@ -306,6 +372,37 @@ function scoreBand(item) {
   return 'low';
 }
 
+function evaluateNotifications(items) {
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+
+  const urgentItems = items.filter((item) => item.urgency >= DEFAULT_URGENCY_ALERT_THRESHOLD);
+  const overdueAssigned = items.filter(
+    (item) => item.assigned_user_id && item.due_at && item.status !== 'done' && item.status !== 'dismissed' && item.due_at < today,
+  );
+  const newlyAssigned = items.filter((item) => item.activity_log.some((entry) => /Assigned to /.test(entry.message))).slice(-5);
+
+  const notifications = [];
+  urgentItems.forEach((item) => notifications.push(`Urgency alert (${item.urgency}): ${item.title}`));
+  overdueAssigned.forEach((item) => notifications.push(`Overdue assigned signal: ${item.title} (${item.assigned_user_id}, due ${item.due_at})`));
+  newlyAssigned.forEach((item) => notifications.push(`New assignment activity: ${item.title}`));
+
+  return {
+    generatedAt: now,
+    notifications,
+    summary: `${notifications.length} notifications • threshold ${DEFAULT_URGENCY_ALERT_THRESHOLD}+`,
+  };
+}
+
+function renderNotifications() {
+  if (!els.notificationList || !els.notificationMeta) return;
+  const evaluated = evaluateNotifications(state.items);
+  els.notificationMeta.textContent = `${evaluated.summary} • checked ${evaluated.generatedAt.toLocaleTimeString()}`;
+  els.notificationList.innerHTML = evaluated.notifications.length
+    ? evaluated.notifications.map((text) => `<li>${text}</li>`).join('')
+    : '<li>No active notifications.</li>';
+}
+
 function render() {
   const items = sortedFilteredItems();
   els.list.innerHTML = '';
@@ -326,9 +423,84 @@ function render() {
     itemEl.tabIndex = 0;
 
     node.querySelector('.item-title').textContent = item.title;
-    node.querySelector('.item-meta').textContent = `${item.category} • ${item.source} • owner ${item.owner}`;
-    node.querySelector('.item-metrics').textContent = `Urgency ${item.urgency} • Relevance ${item.relevance} • Confidence ${item.confidence} • Formula ${scoreBreakdown(item)} • ${formatRelativeTime(item.createdAt)}`;
+    node.querySelector('.item-meta').textContent = `${item.category} • ${item.source} • owner ${item.owner} • status ${statusLabel(item.status)}`;
+    node.querySelector('.item-metrics').textContent = `Urgency ${item.urgency} • Relevance ${item.relevance} • Confidence ${item.confidence} • Formula ${scoreBreakdown(item)} • Due ${formatDate(item.due_at)} • Assigned ${item.assigned_user_id || 'none'} • ${formatRelativeTime(item.createdAt)}`;
     node.querySelector('.item-action').textContent = `Next action: ${recommendationFor(item)}`;
+
+    const statusEl = node.querySelector('.item-status');
+    const dueAtEl = node.querySelector('.item-due-at');
+    const assigneeEl = node.querySelector('.item-assignee');
+    const actionNotesEl = node.querySelector('.item-action-notes');
+    const activityLogEl = node.querySelector('.item-activity-log');
+    const commentsEl = node.querySelector('.item-comments');
+    const addCommentBtn = node.querySelector('.item-comment-add');
+    const commentInput = node.querySelector('.item-comment-input');
+
+    statusEl.value = item.status;
+    dueAtEl.value = item.due_at || '';
+    assigneeEl.value = item.assigned_user_id || '';
+    actionNotesEl.value = item.action_notes || '';
+
+    activityLogEl.innerHTML = item.activity_log.length
+      ? item.activity_log.map((entry) => `<li>${new Date(entry.at).toLocaleString()} • ${entry.message}</li>`).join('')
+      : '<li>No workflow activity yet.</li>';
+
+    commentsEl.innerHTML = item.comments.length
+      ? item.comments.map((comment) => `<li>${new Date(comment.at).toLocaleString()} • ${comment.text}</li>`).join('')
+      : '<li>No comments yet.</li>';
+
+    statusEl.addEventListener('change', (evt) => {
+      const value = evt.target.value;
+      if (!WORKFLOW_STATUSES.includes(value)) return;
+      item.status = value;
+      appendActivity(item, `Status changed to ${statusLabel(value)}`);
+      persist();
+      render();
+      showToast('Status updated');
+    });
+
+    dueAtEl.addEventListener('change', (evt) => {
+      const value = parseDueAt(evt.target.value);
+      item.due_at = value;
+      appendActivity(item, `Due date updated to ${formatDate(value)}`);
+      persist();
+      render();
+      showToast('Due date updated');
+    });
+
+    assigneeEl.addEventListener('change', (evt) => {
+      const previous = item.assigned_user_id || '';
+      const nextValue = cleanText(evt.target.value);
+      item.assigned_user_id = nextValue;
+      if (nextValue && nextValue !== previous) {
+        appendActivity(item, `Assigned to ${nextValue}`);
+      }
+      if (!nextValue) {
+        appendActivity(item, 'Assignment cleared');
+      }
+      persist();
+      render();
+      showToast('Assignee updated');
+    });
+
+    actionNotesEl.addEventListener('change', (evt) => {
+      item.action_notes = cleanText(evt.target.value);
+      appendActivity(item, 'Action notes updated');
+      persist();
+      render();
+      showToast('Action notes saved');
+    });
+
+    addCommentBtn.addEventListener('click', () => {
+      const text = cleanText(commentInput.value || '');
+      if (!text) return;
+      item.comments.push({ at: Date.now(), text });
+      item.comments = item.comments.slice(-20);
+      appendActivity(item, 'Added a new comment');
+      persist();
+      render();
+      showToast('Comment added');
+    });
 
     const scoreEl = node.querySelector('.score');
     scoreEl.textContent = `Score ${score(item)}`;
@@ -353,6 +525,7 @@ function render() {
   });
 
   renderStats();
+  renderNotifications();
 }
 
 function makeId() {
@@ -397,6 +570,12 @@ function loadDemoScenario({ silent = false } = {}) {
   state.items = DEMO_SCENARIO_ITEMS.map((item, idx) => ({
     ...item,
     id: `demo-${idx + 1}`,
+    status: idx === 0 ? 'in_progress' : 'new',
+    due_at: idx < 2 ? new Date(Date.now() + (idx + 1) * 86400000).toISOString().slice(0, 10) : null,
+    assigned_user_id: item.owner.toLowerCase().replace(/\s+/g, '.'),
+    action_notes: idx === 0 ? 'Coordinate updates in #core-signals.' : '',
+    comments: [],
+    activity_log: [{ at: Date.now(), message: 'Loaded from demo scenario' }],
   }));
 
   clearFilters({ silent: true });
@@ -552,6 +731,7 @@ async function generateFinalEvidenceBundle({ silentToast = false } = {}) {
 
 function addItem(evt) {
   evt.preventDefault();
+  const owner = cleanText(els.owner.value) || 'Unassigned';
   const item = {
     id: makeId(),
     title: cleanText(els.title.value),
@@ -560,7 +740,13 @@ function addItem(evt) {
     urgency: clampInt(els.urgency.value, 1, 5, 3),
     relevance: clampInt(els.relevance.value, 1, 5, 3),
     confidence: clampInt(els.confidence.value, 1, 5, 3),
-    owner: cleanText(els.owner.value) || 'Unassigned',
+    owner,
+    status: 'new',
+    due_at: null,
+    assigned_user_id: owner !== 'Unassigned' ? owner.toLowerCase().replace(/\s+/g, '.') : '',
+    action_notes: '',
+    comments: [],
+    activity_log: [{ at: Date.now(), message: 'Signal created' }],
     createdAt: Date.now(),
   };
 
@@ -619,7 +805,7 @@ function buildBriefLines(items, date = new Date().toISOString().slice(0, 10)) {
     'Scoring formula: urgency * 2 + relevance + confidence',
     '',
     '## Priority Signals',
-    ...topItems.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Owner: ${item.owner}\n   - Score: ${score(item)} (Urgency ${item.urgency} • Relevance ${item.relevance} • Confidence ${item.confidence})`),
+    ...topItems.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Owner: ${item.owner}\n   - Workflow: ${statusLabel(item.status)} | Due: ${formatDate(item.due_at)} | Assigned: ${item.assigned_user_id || 'none'}\n   - Score: ${score(item)} (Urgency ${item.urgency} • Relevance ${item.relevance} • Confidence ${item.confidence})`),
     '',
     '## Recommended Actions',
     ...topItems.map((item, idx) => `${idx + 1}. ${recommendationFor(item)}`),
@@ -634,7 +820,7 @@ function buildDigestLines(items, date = new Date().toISOString().slice(0, 10)) {
     '',
     'Scoring formula: urgency * 2 + relevance + confidence',
     '',
-    ...items.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Owner: ${item.owner}\n   - Urgency: ${item.urgency} | Relevance: ${item.relevance} | Confidence: ${item.confidence} | Score: ${score(item)}\n   - Recommended action: ${recommendationFor(item)}`),
+    ...items.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Owner: ${item.owner}\n   - Workflow: ${statusLabel(item.status)} | Due: ${formatDate(item.due_at)} | Assigned: ${item.assigned_user_id || 'none'}\n   - Urgency: ${item.urgency} | Relevance: ${item.relevance} | Confidence: ${item.confidence} | Score: ${score(item)}\n   - Recommended action: ${recommendationFor(item)}\n   - Notes: ${item.action_notes || 'none'}`),
   ];
 }
 
@@ -666,7 +852,7 @@ function buildCanonicalDigestLines(items) {
     '',
     'Scoring formula: urgency * 2 + relevance + confidence',
     '',
-    ...items.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Owner: ${item.owner}\n   - Urgency: ${item.urgency} | Relevance: ${item.relevance} | Confidence: ${item.confidence} | Score: ${score(item)}\n   - Recommended action: ${recommendationFor(item)}`),
+    ...items.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Owner: ${item.owner}\n   - Workflow: ${statusLabel(item.status)} | Due: ${formatDate(item.due_at)} | Assigned: ${item.assigned_user_id || 'none'}\n   - Urgency: ${item.urgency} | Relevance: ${item.relevance} | Confidence: ${item.confidence} | Score: ${score(item)}\n   - Recommended action: ${recommendationFor(item)}\n   - Notes: ${item.action_notes || 'none'}`),
     '',
     '---',
     'Canonical deterministic artifact from fixed demo dataset (`DEMO_SCENARIO_ITEMS`).',
@@ -770,6 +956,44 @@ function generateDailyBrief() {
   const { date, lines } = buildBriefLines(items);
   tryDownloadText(`community-daily-brief-${date}.md`, lines.join('\n'));
   showToast('Daily brief generated');
+}
+
+
+async function deliverDigest({ cadence = 'daily' } = {}) {
+  const items = sortedFilteredItems();
+  if (!items.length) {
+    showToast('No signals available for delivery');
+    return;
+  }
+
+  const date = new Date().toISOString().slice(0, 10);
+  const text = cadence === 'weekly' ? buildDigestLines(items, date).join('\n') : buildBriefLines(items, date).lines.join('\n');
+  const subject = cadence === 'weekly' ? `Weekly Team Digest (${date})` : `Daily Priority Digest (${date})`;
+
+  const email = safeGetLocal('community-signal-board-delivery-email') || 'team@example.com';
+  const slackWebhook = safeGetLocal('community-signal-board-slack-webhook') || '';
+
+  const mailto = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text.slice(0, 1800))}`;
+  const link = document.createElement('a');
+  link.href = mailto;
+  link.click();
+
+  if (slackWebhook) {
+    try {
+      await fetch(slackWebhook, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: `${subject}\n\n${text}` }),
+      });
+      showToast(`${subject} delivered to email + Slack`);
+      return;
+    } catch {
+      showToast(`${subject} delivered to email; Slack delivery failed`);
+      return;
+    }
+  }
+
+  showToast(`${subject} delivered to email draft (configure Slack webhook in localStorage key community-signal-board-slack-webhook)`);
 }
 
 function buildJudgeSnapshotMarkdown(items, health, now = new Date()) {
@@ -952,6 +1176,12 @@ els.clearFilters.addEventListener('click', () => clearFilters());
 els.applyTemplate?.addEventListener('click', applyTemplatePreset);
 els.loadDemo?.addEventListener('click', () => loadDemoScenario());
 els.exportBtn.addEventListener('click', exportDigest);
+els.deliverDailyBtn?.addEventListener('click', () => {
+  deliverDigest({ cadence: 'daily' });
+});
+els.deliverWeeklyBtn?.addEventListener('click', () => {
+  deliverDigest({ cadence: 'weekly' });
+});
 els.briefBtn.addEventListener('click', generateDailyBrief);
 els.copyBriefBtn?.addEventListener('click', copyTopActions);
 els.runHealthBtn?.addEventListener('click', () => runHealthCheck());

@@ -127,8 +127,15 @@
             <button id="generate-canonical-evidence" type="button" class="btn-muted submission-optional-control">Generate Canonical Evidence Artifacts</button>
             <button id="generate-judge-snapshot" type="button" class="btn-muted submission-optional-control">Generate Judge Snapshot</button>
             <button id="export-digest" type="button" class="submission-optional-control">Export Digest</button>
+            <button id="deliver-daily-priority" type="button" class="btn-muted submission-optional-control">Deliver Daily Priority</button>
+            <button id="deliver-weekly-team" type="button" class="btn-muted submission-optional-control">Deliver Weekly Team</button>
           </div>
         </div>
+        <section class="notification-panel" aria-label="Signal notifications">
+          <h3>Notifications</h3>
+          <p class="notification-meta" id="notification-meta">No notification checks run yet.</p>
+          <ul id="notification-list" class="notification-list"></ul>
+        </section>
         <p id="health-status" class="health-status" role="status" aria-live="polite">Health not run in this session.</p>
         <ul id="signal-list" class="signal-list"></ul>
         <div id="empty" class="empty" role="status" aria-live="polite">
@@ -145,6 +152,37 @@
           <p class="item-meta"></p>
           <p class="item-metrics"></p>
           <p class="item-action"></p>
+          <div class="item-workflow">
+            <label>Status
+              <select class="item-status">
+                <option value="new">New</option>
+                <option value="triaged">Triaged</option>
+                <option value="in_progress">In progress</option>
+                <option value="done">Done</option>
+                <option value="dismissed">Dismissed</option>
+              </select>
+            </label>
+            <label>Due date
+              <input class="item-due-at" type="date" />
+            </label>
+            <label>Assigned user ID
+              <input class="item-assignee" type="text" maxlength="80" placeholder="alex.pm" />
+            </label>
+            <label>Action notes
+              <textarea class="item-action-notes" rows="2" maxlength="220" placeholder="Short async handoff note"></textarea>
+            </label>
+          </div>
+          <details class="item-collaboration">
+            <summary>Activity log & comments</summary>
+            <ul class="item-activity-log"></ul>
+            <div class="item-comments-wrap">
+              <ul class="item-comments"></ul>
+              <div class="item-comment-form">
+                <input class="item-comment-input" type="text" maxlength="180" placeholder="Add async comment" />
+                <button class="item-comment-add btn-muted" type="button">Add comment</button>
+              </div>
+            </div>
+          </details>
         </div>
         <div class="item-right">
           <span class="score"></span>
