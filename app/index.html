@@ -55,6 +55,40 @@
       </article>
     </section>
 
+    <section class="shell analytics" aria-label="Policy and lifecycle analytics">
+      <article class="card analytics-card">
+        <h2>Organization Policy</h2>
+        <p class="section-copy">Default policy v1 keeps <code>urgency * 2 + relevance + confidence</code>. Override per organization when needed.</p>
+        <div class="policy-grid">
+          <label>Active organization
+            <select id="active-org"></select>
+          </label>
+          <label>Urgency weight<input id="policy-weight-urgency" type="number" min="0" step="0.5" value="2" /></label>
+          <label>Relevance weight<input id="policy-weight-relevance" type="number" min="0" step="0.5" value="1" /></label>
+          <label>Confidence weight<input id="policy-weight-confidence" type="number" min="0" step="0.5" value="1" /></label>
+          <label>Confidence handling
+            <select id="policy-confidence-handling">
+              <option value="linear">Linear (default)</option>
+              <option value="boost-high">Boost high confidence</option>
+              <option value="penalize-low">Penalize low confidence</option>
+            </select>
+          </label>
+          <label>Opportunity multiplier<input id="policy-category-opportunity" type="number" min="0" step="0.1" value="1" /></label>
+          <label>Funding multiplier<input id="policy-category-funding" type="number" min="0" step="0.1" value="1" /></label>
+          <label>Event multiplier<input id="policy-category-event" type="number" min="0" step="0.1" value="1" /></label>
+          <label>Tool multiplier<input id="policy-category-tool" type="number" min="0" step="0.1" value="1" /></label>
+          <label>Hiring multiplier<input id="policy-category-hiring" type="number" min="0" step="0.1" value="1" /></label>
+        </div>
+        <button id="save-policy" type="button" class="btn-muted">Save policy for organization</button>
+      </article>
+      <article class="card analytics-card">
+        <h2>Lifecycle & Impact Dashboard</h2>
+        <ul id="analytics-metrics" class="analytics-metrics"></ul>
+        <h3>Policy Change Comparison</h3>
+        <p id="policy-comparison" class="comparison-copy">No policy change recorded yet.</p>
+      </article>
+    </section>
+
     <main class="layout shell">
       <section class="card form-card" data-submission-optional="true">
         <h2>Add Signal</h2>
@@ -73,6 +107,7 @@
         <form id="signal-form" novalidate>
           <label>Title<input id="title" required maxlength="120" placeholder="Pilot opening for AI safety workshop" /></label>
           <label>Source<input id="source" required maxlength="80" placeholder="Slack, X, Email, Discord..." /></label>
+          <label>Organization<input id="organization" maxlength="80" placeholder="Default org" /></label>
           <label>Category
             <select id="category" required>
               <option value="Opportunity">Opportunity</option>
@@ -145,6 +180,16 @@
           <p class="item-meta"></p>
           <p class="item-metrics"></p>
           <p class="item-action"></p>
+          <div class="feedback-row">
+            <span class="feedback-label">Recommendation feedback:</span>
+            <button class="feedback-useful btn-muted" type="button">Useful</button>
+            <button class="feedback-not-useful btn-muted" type="button">Not useful</button>
+          </div>
+          <div class="lifecycle-row">
+            <button class="mark-triaged btn-muted" type="button">Mark triaged</button>
+            <button class="mark-actioned btn-muted" type="button">Mark actioned</button>
+            <button class="mark-completed btn-muted" type="button">Toggle completed</button>
+          </div>
         </div>
         <div class="item-right">
           <span class="score"></span>
