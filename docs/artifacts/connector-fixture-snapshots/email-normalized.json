@@ -1,0 +1,22 @@
+[
+  {
+    "signalId": "sig_3226a1119f67",
+    "connector": "email",
+    "externalId": "email:e-1",
+    "threadId": "mail-thread-1",
+    "source": "Partnership inbox",
+    "title": "Repeatable onboarding playbook draft ready for automation rollout",
+    "content": "Repeatable onboarding playbook draft ready for automation rollout",
+    "createdAt": "2026-03-01T10:30:00.000Z",
+    "ownerHint": "Community lead",
+    "primaryDimension": "Leverage",
+    "revenue": 2,
+    "product": 2,
+    "risk": 1,
+    "leverage": 4,
+    "weighted": 2.05,
+    "weighted100": 41,
+    "dedupeKey": "automation draft onboarding playbook ready repeatable rollout",
+    "idempotencyKey": "d1b9d7e7f3482b8121a956f16a97345129fa87c8fa8cacd59337e700588fc605"
+  }
+]
