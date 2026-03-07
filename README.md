@@ -102,3 +102,38 @@ Current style upgrades in this loop:
 ## Judge-proof artifacts
 - Deterministic proof: [docs/DEMO_PROOF_ARTIFACT.md](docs/DEMO_PROOF_ARTIFACT.md)
 - Judge evidence pack (quick index): [docs/SUBMISSION_EVIDENCE_PACK.md](docs/SUBMISSION_EVIDENCE_PACK.md)
+
+## Backend/API mode (new)
+This repo now includes a lightweight Python backend in `api/` with SQLite persistence.
+
+### Assumptions (documented)
+- Authentication is implemented as **dev-mode email magic link**: the API returns a one-time token directly instead of sending an email.
+- Frontend organization scoping uses the organization attached to the issued access token.
+- Default API URL is `http://localhost:8787` (override via `window.CSB_API_BASE`).
+
+### Start backend
+```bash
+python3 api/server.py
+```
+
+### API coverage
+- Signals CRUD: `GET/POST /signals`, `PATCH/DELETE /signals/:id`
+- Filters/sorting: query params on `GET /signals` (`category`, `minUrgency`, `search`, `sort`)
+- Digest generation: `POST /digests/generate` (also persists to `digest_exports`)
+- Magic-link auth: `POST /auth/request-magic-link`, `POST /auth/verify-magic-link`
+
+### DB schema
+Defined in `api/schema.sql`:
+- `organizations`
+- `users`
+- `memberships`
+- `signals`
+- `signal_actions`
+- `digest_exports`
+
+(Plus auth helper tables: `magic_links`, `auth_sessions`.)
+
+### Import legacy JSON export into org-scoped backend data
+```bash
+python3 api/import_local_export.py docs/artifacts/sample-exported-signals.json community-org "Community Org" importer@local.dev
+```
