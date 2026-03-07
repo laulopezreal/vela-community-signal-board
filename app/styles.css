@@ -612,5 +612,5 @@ body.is-submission-mode #toggle-submission-mode {
   text-align: left;
 }
 
-.connector-status-success { color: #1f8f4d; font-weight: 600; }
-.connector-status-fail { color: #b93838; font-weight: 600; }
+.connector-status-success { color: var(--success); font-weight: 600; }
+.connector-status-fail { color: var(--danger); font-weight: 600; }
