@@ -13,10 +13,14 @@ A lightweight app that helps small communities capture scattered updates, rank w
 
 ## What it does
 - Captures high-signal updates manually (title, source, urgency, category, relevance, confidence, owner)
+- Tracks workflow fields per signal (`status`, `due_at`, `assigned_user_id`, `action_notes`)
 - Ranks updates with a transparent scoring formula: `urgency * 2 + relevance + confidence`
 - Filters by category and urgency to focus fast
 - Applies community templates (startup, OSS, local org) for faster, consistent capture
 - Shows per-signal next-action guidance directly in the ranked board
+- Supports async collaboration with per-signal comments + activity log
+- Raises notifications for urgency threshold, overdue assigned work, and new assignments
+- Sends daily priority and weekly team digests through Slack webhook and/or email client (`mailto`)
 - Generates a daily brief markdown with action recommendations and explicit scoring formula
 - Copies top actions to clipboard for fast sharing in chat/email
 - Exports a markdown digest with recommended actions for async sharing
@@ -60,6 +64,11 @@ Included:
 - Ranked dashboard
 - Filters
 - Digest export
+
+## Implementation assumptions (for this iteration)
+- Delivery is implemented in-browser (no backend service). Slack delivery uses an incoming webhook URL configured in UI; email delivery opens the user's email client via `mailto`.
+- "Newly assigned" notifications are inferred from workflow activity entries generated when `assigned_user_id` changes.
+- Overdue logic is date-only (`due_at < current local date`) and excludes signals already marked `done` or `dismissed`.
 
 Not included (intentional weekend non-goals):
 - Auth and multi-tenant accounts

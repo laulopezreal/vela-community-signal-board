@@ -27,6 +27,26 @@
       <p><strong>Digest-ready</strong><span>One-click markdown export for async sharing.</span></p>
     </section>
 
+    <section class="shell card collaboration-card" aria-label="Collaboration and digest delivery" data-submission-optional="true">
+      <h2>Collaboration + Delivery</h2>
+      <div class="collab-grid">
+        <label>Notification urgency threshold (1-5)
+          <input id="notify-threshold" type="number" min="1" max="5" value="4" />
+        </label>
+        <label>Slack webhook URL (optional)
+          <input id="slack-webhook" type="url" placeholder="https://hooks.slack.com/services/..." />
+        </label>
+        <label>Digest email recipient (optional)
+          <input id="digest-email" type="email" placeholder="team@example.com" />
+        </label>
+        <div class="delivery-actions">
+          <button id="send-daily-priority" type="button" class="btn-muted">Send Daily Priority Digest</button>
+          <button id="send-weekly-team" type="button" class="btn-muted">Send Weekly Team Digest</button>
+        </div>
+      </div>
+      <ul id="notification-list" class="notification-list" aria-live="polite"></ul>
+    </section>
+
     <section id="submission-spotlight" class="shell submission-spotlight" aria-label="Submission demo path" hidden>
       <p class="spotlight-title">Submission demo path (judge-speed)</p>
       <ol>
@@ -145,6 +165,39 @@
           <p class="item-meta"></p>
           <p class="item-metrics"></p>
           <p class="item-action"></p>
+          <div class="item-workflow">
+            <label>Status
+              <select class="workflow-status">
+                <option value="new">new</option>
+                <option value="triaged">triaged</option>
+                <option value="in_progress">in_progress</option>
+                <option value="done">done</option>
+                <option value="dismissed">dismissed</option>
+              </select>
+            </label>
+            <label>Due date
+              <input class="workflow-due" type="date" />
+            </label>
+            <label>Assigned user
+              <input class="workflow-assigned" maxlength="80" placeholder="user id or email" />
+            </label>
+            <label>Action notes
+              <textarea class="workflow-notes" rows="2" maxlength="260" placeholder="Latest plan, blockers, dependencies"></textarea>
+            </label>
+            <button class="save-workflow btn-muted" type="button">Save workflow</button>
+          </div>
+          <div class="item-comments">
+            <p class="comment-heading">Comments</p>
+            <ul class="comment-list"></ul>
+            <div class="comment-form">
+              <input class="comment-input" maxlength="200" placeholder="Add async comment" />
+              <button class="add-comment btn-muted" type="button">Post</button>
+            </div>
+          </div>
+          <div class="item-activity">
+            <p class="comment-heading">Activity log</p>
+            <ul class="activity-list"></ul>
+          </div>
         </div>
         <div class="item-right">
           <span class="score"></span>
