@@ -1,5 +1,15 @@
 const STORAGE_KEY = 'community-signal-board-v1';
 const FORM_DRAFT_KEY = 'community-signal-board-form-draft-v1';
+const AUDIT_LOG_KEY = 'community-signal-board-audit-log-v1';
+const OBSERVABILITY_KEY = 'community-signal-board-observability-v1';
+const SESSION_KEY = 'community-signal-board-session-v1';
+const RETENTION_KEY = 'community-signal-board-retention-days-v1';
+
+const DEFAULT_SESSION = { orgId: 'vela-community', role: 'contributor' };
+const ROLE_ORDER = ['viewer', 'contributor', 'manager', 'admin'];
+const PERMISSIONS = { createSignal: 'contributor', editSignal: 'contributor', changeScore: 'manager', changeOwner: 'manager', deleteSignal: 'manager', exportData: 'viewer', manageSecurity: 'admin' };
+const WRITE_RATE_LIMIT = { max: 15, windowMs: 60 * 1000 };
+const ABUSE_PATTERNS = [/free\s+money/i, /crypto\s+airdrop/i, /click\s+here\s+now/i, /http:\/\//i];
 
 const TEMPLATE_PRESETS = {
   startup: {
@@ -71,6 +81,12 @@ const DEMO_SCENARIO_ITEMS = [
   },
 ];
 
+const SAMPLE_ONBOARDING_DATASET = [
+  { title: 'Volunteer mentor requests from local university founders', source: 'Campus Discord', category: 'Opportunity', urgency: 4, relevance: 4, confidence: 4, owner: 'Mentor coordinator', createdAt: Date.parse('2026-03-01T09:00:00Z') },
+  { title: 'Municipal innovation grant office hours announced', source: 'City newsletter', category: 'Funding', urgency: 3, relevance: 5, confidence: 4, owner: 'Funding pod', createdAt: Date.parse('2026-03-01T08:20:00Z') },
+  { title: 'Partner OSS project seeks beta users for analytics feature', source: 'GitHub Discussions', category: 'Tool', urgency: 3, relevance: 4, confidence: 5, owner: 'Product loop lead', createdAt: Date.parse('2026-03-01T07:50:00Z') },
+];
+
 const CANONICAL_EVIDENCE_DATE = '2026-02-27';
 const CANONICAL_EXPECTED_MANIFEST = {
   version: 'v1',
@@ -100,10 +116,20 @@ function safeLoadItems() {
         confidence: clampInt(item.confidence, 1, 5, 3),
         owner: cleanText(String(item.owner || '')) || 'Unassigned',
         createdAt: Number.isFinite(Number(item.createdAt)) ? Number(item.createdAt) : Date.now(),
+        orgId: cleanText(String(item.orgId || DEFAULT_SESSION.orgId)) || DEFAULT_SESSION.orgId,
       }))
       .filter((item) => item.title && item.source);
   } catch {
     return [];
+  }
+}
+
+function safeLoadJson(key, fallback) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || 'null');
+    return parsed ?? fallback;
+  } catch {
+    return fallback;
   }
 }
 
@@ -113,6 +139,11 @@ const state = {
   filterUrgency: 0,
   search: '',
   submissionMode: false,
+  session: (() => { const raw = safeLoadJson(SESSION_KEY, DEFAULT_SESSION); return { orgId: cleanText(String(raw.orgId || DEFAULT_SESSION.orgId)) || DEFAULT_SESSION.orgId, role: ROLE_ORDER.includes(raw.role) ? raw.role : DEFAULT_SESSION.role }; })(),
+  auditLogs: (() => { const logs = safeLoadJson(AUDIT_LOG_KEY, []); return Array.isArray(logs) ? logs : []; })(),
+  observability: (() => { const o = safeLoadJson(OBSERVABILITY_KEY, {}); return { actionMetrics: o.actionMetrics || {}, errors: Number(o.errors) || 0, totalCalls: Number(o.totalCalls) || 0, ingestionLastOkAt: Number(o.ingestionLastOkAt) || 0 }; })(),
+  retentionDays: clampInt(safeLoadJson(RETENTION_KEY, 180), 1, 3650, 180),
+  writeEvents: [],
 };
 
 const els = {
@@ -153,6 +184,20 @@ const els = {
   statAvg: document.getElementById('stat-avg'),
   statAssigned: document.getElementById('stat-assigned'),
   toast: document.getElementById('toast'),
+  orgId: document.getElementById('org-id'),
+  userRole: document.getElementById('user-role'),
+  rbacStatus: document.getElementById('rbac-status'),
+  auditLogList: document.getElementById('audit-log-list'),
+  obsSummary: document.getElementById('obs-summary'),
+  ingestionAlert: document.getElementById('ingestion-alert'),
+  exportBackupBtn: document.getElementById('export-backup'),
+  restoreBackupInput: document.getElementById('restore-backup'),
+  retentionDays: document.getElementById('retention-days'),
+  runRetentionBtn: document.getElementById('run-retention'),
+  runIngestionCheckBtn: document.getElementById('run-ingestion-check'),
+  securityStatus: document.getElementById('security-status'),
+  startTourBtn: document.getElementById('start-tour'),
+  loadSampleDatasetBtn: document.getElementById('load-sample-dataset'),
 };
 
 function score(item) {
@@ -248,6 +293,114 @@ function showToast(text) {
   }, 1500);
 }
 
+
+function roleAtLeast(role, requiredRole) {
+  return ROLE_ORDER.indexOf(role) >= ROLE_ORDER.indexOf(requiredRole);
+}
+
+function can(action, item = null) {
+  const requiredRole = PERMISSIONS[action] || 'admin';
+  if (!roleAtLeast(state.session.role, requiredRole)) return false;
+  if (item && (item.orgId || state.session.orgId) !== state.session.orgId) return false;
+  return true;
+}
+
+function requirePermission(action, item = null) {
+  if (can(action, item)) return true;
+  showToast(`Access denied for ${action} (${state.session.role})`);
+  return false;
+}
+
+function appendAudit(action, details = {}) {
+  const entry = { id: makeId(), ts: Date.now(), orgId: state.session.orgId, role: state.session.role, action, details };
+  state.auditLogs.unshift(entry);
+  state.auditLogs = state.auditLogs.slice(0, 1000);
+  safeSetLocal(AUDIT_LOG_KEY, JSON.stringify(state.auditLogs));
+  renderAuditLogs();
+}
+
+function renderAuditLogs() {
+  if (!els.auditLogList) return;
+  els.auditLogList.innerHTML = '';
+  state.auditLogs.slice(0, 10).forEach((log) => {
+    const li = document.createElement('li');
+    const detail = Object.entries(log.details || {}).map(([k, v]) => `${k}=${String(v)}`).join(', ');
+    li.textContent = `[${new Date(log.ts).toLocaleString()}] [${log.orgId}] ${log.action}${detail ? ` • ${detail}` : ''}`;
+    els.auditLogList.appendChild(li);
+  });
+}
+
+function persistObservability() {
+  safeSetLocal(OBSERVABILITY_KEY, JSON.stringify(state.observability));
+}
+
+function renderObservability() {
+  if (els.obsSummary) {
+    const metrics = Object.entries(state.observability.actionMetrics);
+    if (!metrics.length) {
+      els.obsSummary.textContent = 'No API actions observed yet.';
+    } else {
+      const text = metrics
+        .map(([name, m]) => `${name}: avg ${Math.round(m.totalLatencyMs / Math.max(1, m.count))}ms, err ${m.errors}/${m.count}`)
+        .join(' | ');
+      els.obsSummary.textContent = `Calls ${state.observability.totalCalls}, errors ${state.observability.errors}. ${text}`;
+    }
+  }
+  if (els.ingestionAlert) {
+    const stale = !state.observability.ingestionLastOkAt || Date.now() - state.observability.ingestionLastOkAt > 24 * 60 * 60 * 1000;
+    els.ingestionAlert.textContent = stale
+      ? 'ALERT: ingestion job has not reported success in the last 24h.'
+      : `Ingestion healthy. Last successful run ${formatRelativeTime(state.observability.ingestionLastOkAt)}.`;
+  }
+}
+
+function structuredLog(event, status, latencyMs, context = {}) {
+  console.info('[structured]', JSON.stringify({ ts: new Date().toISOString(), event, status, latencyMs, orgId: state.session.orgId, role: state.session.role, ...context }));
+}
+
+async function trackApiAction(name, fn) {
+  const start = performance.now();
+  let ok = false;
+  try {
+    const result = await fn();
+    ok = true;
+    return result;
+  } catch (error) {
+    state.observability.errors += 1;
+    throw error;
+  } finally {
+    const elapsed = Math.round(performance.now() - start);
+    const metric = state.observability.actionMetrics[name] || { count: 0, totalLatencyMs: 0, errors: 0 };
+    metric.count += 1;
+    metric.totalLatencyMs += elapsed;
+    if (!ok) metric.errors += 1;
+    state.observability.actionMetrics[name] = metric;
+    state.observability.totalCalls += 1;
+    persistObservability();
+    renderObservability();
+    structuredLog(name, ok ? 'ok' : 'error', elapsed);
+  }
+}
+
+function trackWriteRateLimit() {
+  const now = Date.now();
+  state.writeEvents = state.writeEvents.filter((ts) => now - ts < WRITE_RATE_LIMIT.windowMs);
+  if (state.writeEvents.length >= WRITE_RATE_LIMIT.max) return false;
+  state.writeEvents.push(now);
+  return true;
+}
+
+function abuseDetected(item) {
+  const text = `${item.title} ${item.source}`;
+  return ABUSE_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+function updateSessionView() {
+  if (els.orgId) els.orgId.value = state.session.orgId;
+  if (els.userRole) els.userRole.value = state.session.role;
+  if (els.rbacStatus) els.rbacStatus.textContent = `Org ${state.session.orgId} • Role ${state.session.role}`;
+}
+
 function persist() {
   const ok = safeSetLocal(STORAGE_KEY, JSON.stringify(state.items));
   if (!ok) showToast('Storage unavailable: data will not persist after refresh');
@@ -280,6 +433,7 @@ function sortedFilteredItems() {
   const q = state.search.trim().toLowerCase();
 
   return state.items
+    .filter((i) => (i.orgId || state.session.orgId) === state.session.orgId)
     .filter((i) => state.filterCategory === 'all' || i.category === state.filterCategory)
     .filter((i) => i.urgency >= state.filterUrgency)
     .filter((i) => !q || i.title.toLowerCase().includes(q) || i.source.toLowerCase().includes(q))
@@ -336,16 +490,53 @@ function render() {
     scoreEl.setAttribute('aria-label', `Score ${score(item)}. Formula ${scoreBreakdown(item)}`);
     scoreEl.classList.add(`score-${scoreBand(item)}`);
 
+    const editBtn = node.querySelector('.edit');
+    editBtn.title = `Edit signal: ${item.title}`;
+    editBtn.addEventListener('click', () => {
+      trackApiAction('editSignal', async () => {
+        if (!requirePermission('editSignal', item)) return;
+        const ownerInput = window.prompt('Owner', item.owner);
+        if (ownerInput === null) return;
+        const urgencyInput = window.prompt('Urgency (1-5)', String(item.urgency));
+        const relevanceInput = window.prompt('Relevance (1-5)', String(item.relevance));
+        const confidenceInput = window.prompt('Confidence (1-5)', String(item.confidence));
+
+        const nextOwner = cleanText(ownerInput) || item.owner;
+        const nextUrgency = clampInt(urgencyInput, 1, 5, item.urgency);
+        const nextRelevance = clampInt(relevanceInput, 1, 5, item.relevance);
+        const nextConfidence = clampInt(confidenceInput, 1, 5, item.confidence);
+
+        if ((nextUrgency !== item.urgency || nextRelevance !== item.relevance || nextConfidence !== item.confidence) && !requirePermission('changeScore', item)) return;
+        if (nextOwner !== item.owner && !requirePermission('changeOwner', item)) return;
+
+        const previous = { owner: item.owner, urgency: item.urgency, relevance: item.relevance, confidence: item.confidence };
+        item.owner = nextOwner;
+        item.urgency = nextUrgency;
+        item.relevance = nextRelevance;
+        item.confidence = nextConfidence;
+        persist();
+        if (previous.owner !== item.owner) appendAudit('ownership.change', { itemId: item.id, from: previous.owner, to: item.owner });
+        if (previous.urgency !== item.urgency || previous.relevance !== item.relevance || previous.confidence !== item.confidence) {
+          appendAudit('score.change', { itemId: item.id, from: `${previous.urgency}/${previous.relevance}/${previous.confidence}`, to: `${item.urgency}/${item.relevance}/${item.confidence}` });
+        }
+        appendAudit('signal.edit', { itemId: item.id, title: item.title });
+        render();
+        showToast('Signal updated');
+      });
+    });
+
     const deleteBtn = node.querySelector('.delete');
     deleteBtn.title = `Delete signal: ${item.title}`;
     deleteBtn.setAttribute('aria-label', `Delete signal: ${item.title}`);
     deleteBtn.addEventListener('click', (evt) => {
+      if (!requirePermission('deleteSignal', item)) return;
       const skipConfirm = evt.shiftKey;
       const approved = skipConfirm || window.confirm(`Delete this signal?\n\n${item.title}`);
       if (!approved) return;
 
       state.items = state.items.filter((x) => x.id !== item.id);
       persist();
+      appendAudit('signal.delete', { itemId: item.id, title: item.title });
       render();
       showToast(skipConfirm ? 'Signal removed (quick delete)' : 'Signal removed');
     });
@@ -397,6 +588,7 @@ function loadDemoScenario({ silent = false } = {}) {
   state.items = DEMO_SCENARIO_ITEMS.map((item, idx) => ({
     ...item,
     id: `demo-${idx + 1}`,
+    orgId: state.session.orgId,
   }));
 
   clearFilters({ silent: true });
@@ -552,7 +744,14 @@ async function generateFinalEvidenceBundle({ silentToast = false } = {}) {
 
 function addItem(evt) {
   evt.preventDefault();
+  if (!requirePermission('createSignal')) return;
+  if (!trackWriteRateLimit()) {
+    showToast('Rate limit reached. Please wait before adding more signals.');
+    return;
+  }
+
   const item = {
+    orgId: state.session.orgId,
     id: makeId(),
     title: cleanText(els.title.value),
     source: cleanText(els.source.value),
@@ -584,6 +783,12 @@ function addItem(evt) {
     (x) => x.title.toLowerCase() === item.title.toLowerCase() && x.source.toLowerCase() === item.source.toLowerCase(),
   );
 
+  if (abuseDetected(item)) {
+    showFormError('Potential abuse/spam pattern detected. Please revise title/source.', els.title);
+    showToast('Signal blocked by abuse prevention policy');
+    return;
+  }
+
   if (isDuplicate) {
     showFormError('A similar signal already exists. Edit the existing item or add a distinct source.', els.title);
     showToast('Similar signal already exists');
@@ -592,6 +797,7 @@ function addItem(evt) {
 
   state.items.push(item);
   persist();
+  appendAudit('signal.edit', { itemId: item.id, title: item.title, action: 'create' });
   els.form.reset();
   clearFormError();
   els.urgency.value = 3;
@@ -761,6 +967,7 @@ function tryDownloadText(filename, text) {
 }
 
 function generateDailyBrief() {
+  if (!requirePermission('exportData')) return;
   const items = sortedFilteredItems();
   if (!items.length) {
     showToast('No signals available for brief');
@@ -769,6 +976,7 @@ function generateDailyBrief() {
 
   const { date, lines } = buildBriefLines(items);
   tryDownloadText(`community-daily-brief-${date}.md`, lines.join('\n'));
+  appendAudit('export.brief', { count: items.length, date });
   showToast('Daily brief generated');
 }
 
@@ -837,6 +1045,7 @@ async function generateJudgeSnapshot() {
 }
 
 async function copyTopActions() {
+  if (!requirePermission('exportData')) return;
   const items = sortedFilteredItems();
   if (!items.length) {
     showToast('No signals available to copy');
@@ -847,6 +1056,7 @@ async function copyTopActions() {
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);
+      appendAudit('export.copyTopActions', { count: items.length });
       showToast('Top actions copied');
       return;
     }
@@ -873,6 +1083,7 @@ async function copyTopActions() {
 }
 
 function exportDigest() {
+  if (!requirePermission('exportData')) return;
   const items = sortedFilteredItems();
   if (!items.length) {
     showToast('No signals to export');
@@ -882,7 +1093,102 @@ function exportDigest() {
   const date = new Date().toISOString().slice(0, 10);
   const lines = buildDigestLines(items, date);
   tryDownloadText(`community-signal-digest-${date}.md`, lines.join('\n'));
+  appendAudit('export.digest', { count: items.length, date });
   showToast('Digest exported');
+}
+
+
+async function encryptTextWithPassphrase(text, passphrase) {
+  if (!globalThis.crypto?.subtle || !passphrase) return text;
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const keyBytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(passphrase));
+  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt']);
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(text));
+  return JSON.stringify({ iv: Array.from(iv), cipher: btoa(String.fromCharCode(...new Uint8Array(encrypted))) });
+}
+
+async function decryptTextWithPassphrase(text, passphrase) {
+  if (!globalThis.crypto?.subtle) return text;
+  const payload = JSON.parse(text);
+  if (!payload?.iv || !payload?.cipher) return text;
+  const keyBytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(passphrase));
+  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['decrypt']);
+  const cipher = Uint8Array.from(atob(payload.cipher), (c) => c.charCodeAt(0));
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(payload.iv) }, key, cipher);
+  return new TextDecoder().decode(plain);
+}
+
+async function exportBackup() {
+  if (!requirePermission('manageSecurity')) return;
+  const passphrase = window.prompt('Optional backup passphrase (blank for plaintext JSON)') || '';
+  const payload = JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), retentionDays: state.retentionDays, items: state.items, auditLogs: state.auditLogs, observability: state.observability });
+  const encrypted = await encryptTextWithPassphrase(payload, passphrase);
+  tryDownloadText(`community-signal-backup-${new Date().toISOString().slice(0, 10)}.json`, encrypted);
+  appendAudit('export.backup', { encrypted: !!passphrase });
+  showToast('Backup exported');
+}
+
+async function restoreBackupFromFile(file) {
+  if (!requirePermission('manageSecurity')) return;
+  const raw = await file.text();
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    const passphrase = window.prompt('Encrypted backup detected. Enter passphrase to restore:') || '';
+    const decrypted = await decryptTextWithPassphrase(raw, passphrase);
+    parsed = JSON.parse(decrypted);
+  }
+
+  state.items = Array.isArray(parsed.items) ? parsed.items : state.items;
+  state.auditLogs = Array.isArray(parsed.auditLogs) ? parsed.auditLogs : state.auditLogs;
+  state.observability = parsed.observability && typeof parsed.observability === 'object' ? parsed.observability : state.observability;
+  state.retentionDays = clampInt(parsed.retentionDays, 1, 3650, state.retentionDays);
+  persist();
+  safeSetLocal(AUDIT_LOG_KEY, JSON.stringify(state.auditLogs));
+  persistObservability();
+  safeSetLocal(RETENTION_KEY, JSON.stringify(state.retentionDays));
+  render();
+  renderAuditLogs();
+  renderObservability();
+  appendAudit('backup.restore', { itemCount: state.items.length });
+  showToast('Backup restored');
+}
+
+function applyRetentionPolicy() {
+  const cutoff = Date.now() - state.retentionDays * 24 * 60 * 60 * 1000;
+  const beforeLogs = state.auditLogs.length;
+  state.auditLogs = state.auditLogs.filter((x) => x.ts >= cutoff);
+  safeSetLocal(AUDIT_LOG_KEY, JSON.stringify(state.auditLogs));
+  renderAuditLogs();
+  appendAudit('retention.apply', { days: state.retentionDays, removed: beforeLogs - state.auditLogs.length });
+  showToast('Retention policy applied');
+}
+
+function runIngestionAlertCheck() {
+  state.observability.ingestionLastOkAt = Date.now();
+  persistObservability();
+  renderObservability();
+  appendAudit('ingestion.alertCheck', { status: 'ok' });
+  showToast('Ingestion monitor check updated');
+}
+
+function startTour() {
+  const steps = [
+    'Step 1/4: Set your org and role in the RBAC panel.',
+    'Step 2/4: Use a template or sample dataset to seed the board.',
+    'Step 3/4: Review ranked signals and edit ownership/scores.',
+    'Step 4/4: Export digest/brief and monitor observability panels.',
+  ];
+  steps.forEach((step, idx) => setTimeout(() => showToast(step), idx * 1400));
+}
+
+function loadSampleDataset() {
+  state.items = SAMPLE_ONBOARDING_DATASET.map((item, idx) => ({ ...item, id: `sample-${idx + 1}`, orgId: state.session.orgId }));
+  persist();
+  appendAudit('dataset.loadSample', { count: state.items.length });
+  render();
+  showToast('Sample dataset loaded');
 }
 
 function setHealthStatus(text, level = 'pass') {
@@ -969,8 +1275,34 @@ els.finalBundleBtn?.addEventListener('click', () => {
   generateFinalEvidenceBundle();
 });
 els.submissionToggleBtn?.addEventListener('click', toggleSubmissionMode);
+els.orgId?.addEventListener('change', (e) => {
+  state.session.orgId = cleanText(e.target.value).slice(0, 64) || DEFAULT_SESSION.orgId;
+  safeSetLocal(SESSION_KEY, JSON.stringify(state.session));
+  updateSessionView();
+  render();
+});
+els.userRole?.addEventListener('change', (e) => {
+  state.session.role = ROLE_ORDER.includes(e.target.value) ? e.target.value : DEFAULT_SESSION.role;
+  safeSetLocal(SESSION_KEY, JSON.stringify(state.session));
+  updateSessionView();
+  render();
+});
+els.exportBackupBtn?.addEventListener('click', () => { exportBackup(); });
+els.restoreBackupInput?.addEventListener('change', (e) => { const file = e.target.files?.[0]; if (file) restoreBackupFromFile(file); });
+els.retentionDays?.addEventListener('change', (e) => {
+  state.retentionDays = clampInt(e.target.value, 1, 3650, state.retentionDays);
+  safeSetLocal(RETENTION_KEY, JSON.stringify(state.retentionDays));
+});
+els.runRetentionBtn?.addEventListener('click', applyRetentionPolicy);
+els.runIngestionCheckBtn?.addEventListener('click', runIngestionAlertCheck);
+els.startTourBtn?.addEventListener('click', startTour);
+els.loadSampleDatasetBtn?.addEventListener('click', loadSampleDataset);
 
 loadFormDraft();
 setSubmissionMode(false);
+updateSessionView();
+renderAuditLogs();
+renderObservability();
+if (els.retentionDays) els.retentionDays.value = String(state.retentionDays);
 persist();
 render();
