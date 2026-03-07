@@ -24,6 +24,18 @@ A lightweight app that helps small communities capture scattered updates, rank w
 - Explicit fallback demo flow via **Run Health Check + Load Demo Scenario**
 - Generates daily brief and digest markdown artifacts for judging evidence
 - Safely recovers from corrupted localStorage data without breaking app load
+- Enforces org-scoped RBAC (`admin`, `manager`, `contributor`, `viewer`) for signal actions
+- Writes audit logs for edits, score changes, ownership changes, exports, backup/restore, and context switches
+- Shows a lightweight observability status line (API p95 latency, error rate, ingestion freshness alert)
+- Supports encrypted JSON backup export, restore, and retention pruning controls
+- Adds abuse controls via per-minute rate limiting and structured JSON logs in browser console
+- Includes in-app onboarding tour and sample dataset load for faster first-run value
+
+## Assumptions for enterprise controls
+- This MVP is static/local-first, so **encryption in transit** is assumed to be enforced by deployment behind HTTPS/TLS.
+- **Encryption at rest** is implemented for backup payload exports only (simple reversible payload obfuscation for demo portability).
+- **Secrets management** is treated as an ops responsibility outside this static app (for ingestion adapters and hosting config).
+- Monitoring dashboards/alerts are represented by in-app observability summaries and structured logs; production teams should wire these events into centralized telemetry.
 
 ## Why this community
 Small founder and builder groups miss opportunities when important signals are split across Slack, X, email, and chats. This app creates one clean board and one daily digest.

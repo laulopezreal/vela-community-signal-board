@@ -116,6 +116,24 @@ body {
   font-size: .82rem;
 }
 
+.governance-strip {
+  margin-top: .85rem;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  border-radius: var(--radius-md);
+  padding: .75rem .9rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) 1.8fr;
+  gap: .6rem;
+  align-items: end;
+}
+
+.inline-status {
+  margin: 0;
+  font-size: .8rem;
+  color: #c6d7ff;
+}
+
 .submission-spotlight {
   margin-top: .85rem;
   border: 1px solid rgba(96, 165, 250, 0.45);
@@ -484,6 +502,20 @@ body.is-submission-mode #toggle-submission-mode {
   border-color: rgba(52, 211, 153, 0.45);
 }
 
+.delete,
+.edit,
+.score-change,
+.reassign {
+  width: auto;
+  min-height: 34px;
+  padding: .35rem .68rem;
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
+  color: #d7e3ff;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
 .delete {
   width: auto;
   min-height: 34px;
@@ -507,6 +539,14 @@ body.is-submission-mode #toggle-submission-mode {
   color: #fff;
 }
 .delete:active { background: var(--danger-press); }
+
+.file-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: .28rem;
+  min-height: 40px;
+}
 
 .empty {
   margin: 1rem 0 0;
@@ -579,6 +619,7 @@ body.is-submission-mode #toggle-submission-mode {
   .header-actions { width: 100%; flex-wrap: wrap; }
   .stats,
   .capability-strip,
+  .governance-strip,
   .score-grid,
   .filters { grid-template-columns: 1fr; }
   .signal-item { flex-direction: column; }
