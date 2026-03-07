@@ -1,0 +1,11 @@
+[
+  {
+    "decisionId": "dec_sig_fdd5ac895f54",
+    "signalId": "sig_fdd5ac895f54",
+    "owner": "Partnerships",
+    "action": "Triage in standup and monitor for escalation",
+    "deadline": "2026-02-28T11:00:00.000Z",
+    "expectedMetric": "triage latency: down",
+    "weightedScore": 3.6
+  }
+]
