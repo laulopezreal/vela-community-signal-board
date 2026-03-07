@@ -45,14 +45,32 @@ node ops/run_local_ingestion.js
 This transforms exported external signals into a ranked queue snapshot via the same scoring flow (`urgency * 2 + relevance + confidence`).
 
 ## Run locally
-No build step required.
 
 ```bash
-cd app
-python3 -m http.server 5173
+npm install
+npm start
 ```
 
 Open: http://localhost:5173
+
+### Backend/auth assumptions
+- This repo now runs a built-in `server/` (Express + SQLite) and serves the front-end from the same port.
+- Authentication uses a **magic-link style** flow via API endpoints (`/api/auth/request-link` + `/api/auth/verify`).
+- For local development, the front-end auto-bootstraps a demo session (`demo@community.local`) and stores only the session token in localStorage.
+- All signal and digest queries are scoped to the authenticated organization through membership checks.
+
+### API endpoints (server)
+- `POST /api/auth/request-link` and `POST /api/auth/verify`
+- `GET /api/me`
+- `GET /api/signals`, `GET /api/signals/filters`, `POST /api/signals`, `PATCH /api/signals/:id`, `DELETE /api/signals/:id`
+- `POST /api/digests/generate`
+
+### Import existing local export JSON
+Use the migration script to import historic local export payloads into org-scoped backend records:
+
+```bash
+npm run import:local-export -- ./docs/artifacts/sample-exported-signals.json "Community Signal Board Demo Org" "demo@community.local"
+```
 
 ## MVP scope
 Included:
@@ -62,7 +80,6 @@ Included:
 - Digest export
 
 Not included (intentional weekend non-goals):
-- Auth and multi-tenant accounts
 - External API integrations
 - Advanced analytics
 
