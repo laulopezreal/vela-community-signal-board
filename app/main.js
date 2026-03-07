@@ -797,7 +797,7 @@ function addItem(evt) {
 
   state.items.push(item);
   persist();
-  appendAudit('signal.edit', { itemId: item.id, title: item.title, action: 'create' });
+  appendAudit('signal.create', { itemId: item.id, title: item.title });
   els.form.reset();
   clearFormError();
   els.urgency.value = 3;
