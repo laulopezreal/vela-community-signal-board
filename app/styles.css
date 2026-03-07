@@ -660,3 +660,23 @@ body.is-submission-mode #toggle-submission-mode {
     bottom: .75rem;
   }
 }
+
+.connector-history {
+  margin: 1rem 0 1.2rem;
+}
+
+#connector-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+#connector-history-table th,
+#connector-history-table td {
+  padding: 0.45rem;
+  border-bottom: 1px solid #e4e8ee;
+  text-align: left;
+}
+
+.connector-status-success { color: #1f8f4d; font-weight: 600; }
+.connector-status-fail { color: #b93838; font-weight: 600; }

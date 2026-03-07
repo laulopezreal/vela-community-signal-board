@@ -1,4 +1,3 @@
-const STORAGE_KEY = 'community-signal-board-v1';
 const FORM_DRAFT_KEY = 'community-signal-board-form-draft-v1';
 const AUDIT_LOG_KEY = 'community-signal-board-audit-log-v1';
 const OBSERVABILITY_KEY = 'community-signal-board-observability-v1';
@@ -134,7 +133,7 @@ function safeLoadJson(key, fallback) {
 }
 
 const state = {
-  items: safeLoadItems(),
+  items: [],
   filterCategory: 'all',
   filterUrgency: 0,
   search: '',
@@ -176,8 +175,13 @@ const els = {
   demoMacroBtn: document.getElementById('run-demo-reset-health'),
   finalBundleBtn: document.getElementById('generate-final-evidence-bundle'),
   submissionToggleBtn: document.getElementById('toggle-submission-mode'),
+  backendToggleBtn: document.getElementById('toggle-backend-board'),
+  backendStatusCopy: document.getElementById('backend-status-copy'),
   submissionSpotlight: document.getElementById('submission-spotlight'),
   healthStatus: document.getElementById('health-status'),
+  connectorHistoryEmpty: document.getElementById('connector-history-empty'),
+  connectorHistoryTable: document.getElementById('connector-history-table'),
+  connectorHistoryBody: document.getElementById('connector-history-body'),
   tpl: document.getElementById('item-template'),
   statTotal: document.getElementById('stat-total'),
   statHigh: document.getElementById('stat-high'),
@@ -244,6 +248,78 @@ function safeRemoveLocal(key) {
   }
 }
 
+async function apiRequest(path, { method = 'GET', body, headers = {} } = {}) {
+  const response = await fetch(path, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(state.sessionToken ? { Authorization: `Bearer ${state.sessionToken}` } : {}),
+      ...headers,
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload.ok === false) {
+    throw new Error(payload.error || `Request failed: ${response.status}`);
+  }
+  return payload;
+}
+
+function mapApiSignal(signal) {
+  return {
+    id: signal.id,
+    title: cleanText(String(signal.title || '')),
+    source: cleanText(String(signal.source || '')),
+    category: signal.category,
+    urgency: clampInt(signal.urgency, 1, 5, 3),
+    relevance: clampInt(signal.relevance, 1, 5, 3),
+    confidence: clampInt(signal.confidence, 1, 5, 3),
+    owner: cleanText(String(signal.owner || '')) || 'Unassigned',
+    createdAt: Number(signal.created_at || signal.createdAt || Date.now()),
+  };
+}
+
+async function bootstrapAuth() {
+  const saved = safeGetLocal(API_SESSION_KEY);
+  if (saved) {
+    state.sessionToken = saved;
+    try {
+      await apiRequest('/api/me');
+      state.authReady = true;
+      return;
+    } catch {
+      safeRemoveLocal(API_SESSION_KEY);
+      state.sessionToken = null;
+    }
+  }
+
+  const email = 'demo@community.local';
+  const authStart = await apiRequest('/api/auth/request-link', {
+    method: 'POST',
+    body: { email, orgName: 'Community Signal Board Demo Org' },
+  });
+  const authVerified = await apiRequest('/api/auth/verify', {
+    method: 'POST',
+    body: { token: authStart.token },
+  });
+  state.sessionToken = authVerified.sessionToken;
+  safeSetLocal(API_SESSION_KEY, authVerified.sessionToken);
+  state.authReady = true;
+}
+
+async function refreshItemsFromApi() {
+  const query = new URLSearchParams({
+    category: state.filterCategory,
+    minUrgency: String(state.filterUrgency),
+    search: state.search,
+    sortBy: 'score',
+    order: 'desc',
+  });
+  const data = await apiRequest(`/api/signals?${query.toString()}`);
+  state.items = (data.items || []).map(mapApiSignal);
+}
+
 function formatRelativeTime(ts) {
   const deltaMs = Date.now() - Number(ts || 0);
   const mins = Math.max(1, Math.floor(deltaMs / 60000));
@@ -280,6 +356,29 @@ function saveFormDraft() {
     owner: els.owner.value,
   };
   safeSetLocal(FORM_DRAFT_KEY, JSON.stringify(draft));
+}
+
+async function loadConnectorRunHistory() {
+  if (!els.connectorHistoryBody || !els.connectorHistoryTable || !els.connectorHistoryEmpty) return;
+  try {
+    const response = await fetch('./data/connector-run-history.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`status_${response.status}`);
+    const rows = await response.json();
+    if (!Array.isArray(rows) || rows.length === 0) return;
+
+    els.connectorHistoryBody.innerHTML = '';
+    rows.slice(0, 12).forEach((row) => {
+      const tr = document.createElement('tr');
+      const statusClass = row.status === 'success' ? 'connector-status-success' : 'connector-status-fail';
+      tr.innerHTML = `<td>${row.connector || 'unknown'}</td><td class="${statusClass}">${row.status || 'unknown'}</td><td>${Number(row.rowsProcessed || 0)}</td><td>${Number(row.rowsInserted || 0)}</td><td>${Number(row.rowsDeduped || 0)}</td><td>${new Date(row.finishedAt || row.startedAt || Date.now()).toLocaleString()}</td>`;
+      els.connectorHistoryBody.appendChild(tr);
+    });
+
+    els.connectorHistoryEmpty.hidden = true;
+    els.connectorHistoryTable.hidden = false;
+  } catch {
+    // Keep empty state if fixture is unavailable in local-only mode.
+  }
 }
 
 let toastTimer;
@@ -593,7 +692,7 @@ function loadDemoScenario({ silent = false } = {}) {
 
   clearFilters({ silent: true });
   safeRemoveLocal(FORM_DRAFT_KEY);
-  persist();
+  await refreshItemsFromApi();
   render();
   if (!silent) showToast('Demo scenario loaded');
 }
@@ -609,13 +708,13 @@ function focusTopRankedCard() {
   return true;
 }
 
-function runDemoResetHealthMacro({ silentToast = false } = {}) {
+async function runDemoResetHealthMacro({ silentToast = false } = {}) {
   if (!els.demoMacroBtn || els.demoMacroBtn.disabled) return true;
 
   let success = false;
   els.demoMacroBtn.disabled = true;
   try {
-    loadDemoScenario({ silent: true });
+    await loadDemoScenario({ silent: true });
     clearFilters({ silent: true });
     const health = runHealthCheck({ silent: true });
     const focused = focusTopRankedCard();
@@ -640,12 +739,90 @@ async function runJudgeFastPath() {
 
   els.judgeFastPathBtn.disabled = true;
   try {
-    const resetOk = runDemoResetHealthMacro({ silentToast: true });
+    const resetOk = await runDemoResetHealthMacro({ silentToast: true });
     if (!resetOk) return;
     await generateFinalEvidenceBundle({ silentToast: true });
     showToast('Judge fast path complete • Demo reset + final evidence bundle ready');
   } finally {
     els.judgeFastPathBtn.disabled = false;
+  }
+}
+
+
+function backendApiBase() {
+  const custom = globalThis.localStorage?.getItem('community-signal-board-api-base');
+  return custom || 'http://localhost:8791';
+}
+
+function setBackendLabel(text) {
+  if (els.backendStatusCopy) els.backendStatusCopy.textContent = text;
+}
+
+async function pullBoardFromBackend() {
+  const res = await fetch(`${backendApiBase()}/v1/live/board`);
+  if (!res.ok) throw new Error(`backend_board_http_${res.status}`);
+  const payload = await res.json();
+  const ranked = Array.isArray(payload.rankedSignals) ? payload.rankedSignals : [];
+  state.items = ranked.map((signal) => ({
+    id: signal.signalId,
+    title: signal.title || signal.content || signal.signalId,
+    source: signal.source || 'Discord',
+    category: 'Opportunity',
+    urgency: clampInt(signal.weighted || 3, 1, 5, 3),
+    relevance: clampInt(signal.weighted || 3, 1, 5, 3),
+    confidence: 3,
+    owner: signal.owner || 'Unassigned',
+    createdAt: Date.parse(signal.createdAt || new Date().toISOString()),
+  }));
+  render();
+}
+
+function connectBoardStream() {
+  if (!state.backendEnabled) return;
+  if (state.backendEventSource) state.backendEventSource.close();
+  const es = new EventSource(`${backendApiBase()}/v1/live/board/stream`);
+  state.backendEventSource = es;
+  es.addEventListener('board.update', async () => {
+    try {
+      await pullBoardFromBackend();
+      setBackendLabel('Live backend stream');
+    } catch {
+      setBackendLabel('Backend stream active, pull failed');
+    }
+  });
+  es.onerror = () => {
+    setBackendLabel('Backend stream disconnected, local fallback');
+  };
+}
+
+async function setBackendMode(enabled) {
+  state.backendEnabled = !!enabled;
+  if (els.backendToggleBtn) {
+    els.backendToggleBtn.textContent = `Backend Board: ${state.backendEnabled ? 'On' : 'Off'}`;
+    els.backendToggleBtn.setAttribute('aria-pressed', state.backendEnabled ? 'true' : 'false');
+  }
+
+  safeSetLocal(BACKEND_TOGGLE_KEY, state.backendEnabled ? 'on' : 'off');
+
+  if (!state.backendEnabled) {
+    if (state.backendEventSource) state.backendEventSource.close();
+    state.backendEventSource = null;
+    setBackendLabel('Local fallback');
+    return;
+  }
+
+  try {
+    await pullBoardFromBackend();
+    connectBoardStream();
+    setBackendLabel('Live backend stream');
+  } catch {
+    state.backendEnabled = false;
+    safeSetLocal(BACKEND_TOGGLE_KEY, 'off');
+    if (els.backendToggleBtn) {
+      els.backendToggleBtn.textContent = 'Backend Board: Off';
+      els.backendToggleBtn.setAttribute('aria-pressed', 'false');
+    }
+    setBackendLabel('Backend unavailable, local fallback');
   }
 }
 
@@ -742,7 +919,7 @@ async function generateFinalEvidenceBundle({ silentToast = false } = {}) {
   }
 }
 
-function addItem(evt) {
+async function addItem(evt) {
   evt.preventDefault();
   if (!requirePermission('createSignal')) return;
   if (!trackWriteRateLimit()) {
@@ -1242,22 +1419,33 @@ els.form.addEventListener('input', (e) => {
     if (els.formError?.hidden === false) clearFormError();
   }
 });
-els.search.addEventListener('input', (e) => {
+els.search.addEventListener('input', async (e) => {
   state.search = e.target.value;
+  await refreshItemsFromApi();
   render();
 });
-els.filterCategory.addEventListener('change', (e) => {
+els.filterCategory.addEventListener('change', async (e) => {
   state.filterCategory = e.target.value;
+  await refreshItemsFromApi();
   render();
 });
-els.filterUrgency.addEventListener('change', (e) => {
+els.filterUrgency.addEventListener('change', async (e) => {
   state.filterUrgency = Number(e.target.value);
+  await refreshItemsFromApi();
   render();
 });
-els.clearFilters.addEventListener('click', () => clearFilters());
+els.clearFilters.addEventListener('click', async () => {
+  clearFilters();
+  await refreshItemsFromApi();
+  render();
+});
 els.applyTemplate?.addEventListener('click', applyTemplatePreset);
-els.loadDemo?.addEventListener('click', () => loadDemoScenario());
-els.exportBtn.addEventListener('click', exportDigest);
+els.loadDemo?.addEventListener('click', async () => {
+  await loadDemoScenario();
+});
+els.exportBtn.addEventListener('click', async () => {
+  await exportDigest();
+});
 els.briefBtn.addEventListener('click', generateDailyBrief);
 els.copyBriefBtn?.addEventListener('click', copyTopActions);
 els.runHealthBtn?.addEventListener('click', () => runHealthCheck());
@@ -1267,10 +1455,12 @@ els.canonicalEvidenceBtn?.addEventListener('click', () => {
 els.judgeSnapshotBtn?.addEventListener('click', () => {
   generateJudgeSnapshot();
 });
-els.judgeFastPathBtn?.addEventListener('click', () => {
-  runJudgeFastPath();
+els.judgeFastPathBtn?.addEventListener('click', async () => {
+  await runJudgeFastPath();
 });
-els.demoMacroBtn?.addEventListener('click', runDemoResetHealthMacro);
+els.demoMacroBtn?.addEventListener('click', async () => {
+  await runDemoResetHealthMacro();
+});
 els.finalBundleBtn?.addEventListener('click', () => {
   generateFinalEvidenceBundle();
 });

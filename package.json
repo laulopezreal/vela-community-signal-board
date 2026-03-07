@@ -1,0 +1,19 @@
+{
+  "name": "vela-community-signal-board",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js",
+    "db:init": "node server/scripts/init-db.js",
+    "import:local-export": "node server/scripts/import-local-export.js",
+    "connectors:run": "node ops/run_connector_jobs.js",
+    "connectors:fixtures": "./ops/check_connector_fixtures.sh",
+    "discord:pipeline": "node ops/run_discord_pipeline.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "express": "^4.21.2"
+  }
+}

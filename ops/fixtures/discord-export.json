@@ -1,0 +1,23 @@
+{
+  "channels": [
+    {
+      "name": "founders",
+      "messages": [
+        {
+          "id": "d-1",
+          "content": "Urgent sponsor intro needed tonight for AI infra founder dinner",
+          "createdAt": "2026-03-01T08:00:00Z",
+          "reactionCount": 6,
+          "threadId": "thread-1"
+        },
+        {
+          "id": "d-1",
+          "content": "Urgent sponsor intro needed tonight for AI infra founder dinner",
+          "createdAt": "2026-03-01T08:00:00Z",
+          "reactionCount": 6,
+          "threadId": "thread-1"
+        }
+      ]
+    }
+  ]
+}
