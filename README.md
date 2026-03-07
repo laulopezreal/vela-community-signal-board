@@ -66,6 +66,12 @@ Not included (intentional weekend non-goals):
 - External API integrations
 - Advanced analytics
 
+
+## Architecture migration assumptions
+- The ADR migration plan assumes organizations are the tenancy boundary and users can belong to multiple organizations via memberships.
+- The current free-text `owner` field remains supported during migration and is mapped to `owner_display_name` until a resolvable user identity is available.
+- MVP UX/scoring reference remains `app/index.html` + `app/main.js`; production work should preserve that behavior while moving persistence to API/DB.
+
 ## Dedicated style improvement loop (parallel to functional loop)
 This repo now runs a separate style loop in parallel with feature work.
 
