@@ -1,4 +1,3 @@
-const STORAGE_KEY = 'community-signal-board-v1';
 const FORM_DRAFT_KEY = 'community-signal-board-form-draft-v1';
 const DELIVERY_SETTINGS_KEY = 'community-signal-board-delivery-v1';
 const WORKFLOW_STATUSES = ['new', 'triaged', 'in_progress', 'done', 'dismissed'];
@@ -73,6 +72,12 @@ const DEMO_SCENARIO_ITEMS = [
   },
 ];
 
+const SAMPLE_ONBOARDING_DATASET = [
+  { title: 'Volunteer mentor requests from local university founders', source: 'Campus Discord', category: 'Opportunity', urgency: 4, relevance: 4, confidence: 4, owner: 'Mentor coordinator', createdAt: Date.parse('2026-03-01T09:00:00Z') },
+  { title: 'Municipal innovation grant office hours announced', source: 'City newsletter', category: 'Funding', urgency: 3, relevance: 5, confidence: 4, owner: 'Funding pod', createdAt: Date.parse('2026-03-01T08:20:00Z') },
+  { title: 'Partner OSS project seeks beta users for analytics feature', source: 'GitHub Discussions', category: 'Tool', urgency: 3, relevance: 4, confidence: 5, owner: 'Product loop lead', createdAt: Date.parse('2026-03-01T07:50:00Z') },
+];
+
 const CANONICAL_EVIDENCE_DATE = '2026-02-27';
 const CANONICAL_EXPECTED_MANIFEST = {
   version: 'v1',
@@ -137,7 +142,7 @@ function normalizeSignalItem(item) {
 }
 
 const state = {
-  items: safeLoadItems(),
+  items: [],
   filterCategory: 'all',
   filterUrgency: 0,
   search: '',
@@ -180,8 +185,13 @@ const els = {
   demoMacroBtn: document.getElementById('run-demo-reset-health'),
   finalBundleBtn: document.getElementById('generate-final-evidence-bundle'),
   submissionToggleBtn: document.getElementById('toggle-submission-mode'),
+  backendToggleBtn: document.getElementById('toggle-backend-board'),
+  backendStatusCopy: document.getElementById('backend-status-copy'),
   submissionSpotlight: document.getElementById('submission-spotlight'),
   healthStatus: document.getElementById('health-status'),
+  connectorHistoryEmpty: document.getElementById('connector-history-empty'),
+  connectorHistoryTable: document.getElementById('connector-history-table'),
+  connectorHistoryBody: document.getElementById('connector-history-body'),
   tpl: document.getElementById('item-template'),
   statTotal: document.getElementById('stat-total'),
   statHigh: document.getElementById('stat-high'),
@@ -238,6 +248,78 @@ function safeRemoveLocal(key) {
   } catch {
     return false;
   }
+}
+
+async function apiRequest(path, { method = 'GET', body, headers = {} } = {}) {
+  const response = await fetch(path, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(state.sessionToken ? { Authorization: `Bearer ${state.sessionToken}` } : {}),
+      ...headers,
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload.ok === false) {
+    throw new Error(payload.error || `Request failed: ${response.status}`);
+  }
+  return payload;
+}
+
+function mapApiSignal(signal) {
+  return {
+    id: signal.id,
+    title: cleanText(String(signal.title || '')),
+    source: cleanText(String(signal.source || '')),
+    category: signal.category,
+    urgency: clampInt(signal.urgency, 1, 5, 3),
+    relevance: clampInt(signal.relevance, 1, 5, 3),
+    confidence: clampInt(signal.confidence, 1, 5, 3),
+    owner: cleanText(String(signal.owner || '')) || 'Unassigned',
+    createdAt: Number(signal.created_at || signal.createdAt || Date.now()),
+  };
+}
+
+async function bootstrapAuth() {
+  const saved = safeGetLocal(API_SESSION_KEY);
+  if (saved) {
+    state.sessionToken = saved;
+    try {
+      await apiRequest('/api/me');
+      state.authReady = true;
+      return;
+    } catch {
+      safeRemoveLocal(API_SESSION_KEY);
+      state.sessionToken = null;
+    }
+  }
+
+  const email = 'demo@community.local';
+  const authStart = await apiRequest('/api/auth/request-link', {
+    method: 'POST',
+    body: { email, orgName: 'Community Signal Board Demo Org' },
+  });
+  const authVerified = await apiRequest('/api/auth/verify', {
+    method: 'POST',
+    body: { token: authStart.token },
+  });
+  state.sessionToken = authVerified.sessionToken;
+  safeSetLocal(API_SESSION_KEY, authVerified.sessionToken);
+  state.authReady = true;
+}
+
+async function refreshItemsFromApi() {
+  const query = new URLSearchParams({
+    category: state.filterCategory,
+    minUrgency: String(state.filterUrgency),
+    search: state.search,
+    sortBy: 'score',
+    order: 'desc',
+  });
+  const data = await apiRequest(`/api/signals?${query.toString()}`);
+  state.items = (data.items || []).map(mapApiSignal);
 }
 
 function formatRelativeTime(ts) {
@@ -339,6 +421,29 @@ function saveFormDraft() {
   safeSetLocal(FORM_DRAFT_KEY, JSON.stringify(draft));
 }
 
+async function loadConnectorRunHistory() {
+  if (!els.connectorHistoryBody || !els.connectorHistoryTable || !els.connectorHistoryEmpty) return;
+  try {
+    const response = await fetch('./data/connector-run-history.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`status_${response.status}`);
+    const rows = await response.json();
+    if (!Array.isArray(rows) || rows.length === 0) return;
+
+    els.connectorHistoryBody.innerHTML = '';
+    rows.slice(0, 12).forEach((row) => {
+      const tr = document.createElement('tr');
+      const statusClass = row.status === 'success' ? 'connector-status-success' : 'connector-status-fail';
+      tr.innerHTML = `<td>${row.connector || 'unknown'}</td><td class="${statusClass}">${row.status || 'unknown'}</td><td>${Number(row.rowsProcessed || 0)}</td><td>${Number(row.rowsInserted || 0)}</td><td>${Number(row.rowsDeduped || 0)}</td><td>${new Date(row.finishedAt || row.startedAt || Date.now()).toLocaleString()}</td>`;
+      els.connectorHistoryBody.appendChild(tr);
+    });
+
+    els.connectorHistoryEmpty.hidden = true;
+    els.connectorHistoryTable.hidden = false;
+  } catch {
+    // Keep empty state if fixture is unavailable in local-only mode.
+  }
+}
+
 let toastTimer;
 function showToast(text) {
   if (!els.toast) return;
@@ -348,6 +453,114 @@ function showToast(text) {
   toastTimer = setTimeout(() => {
     els.toast.classList.remove('show');
   }, 1500);
+}
+
+
+function roleAtLeast(role, requiredRole) {
+  return ROLE_ORDER.indexOf(role) >= ROLE_ORDER.indexOf(requiredRole);
+}
+
+function can(action, item = null) {
+  const requiredRole = PERMISSIONS[action] || 'admin';
+  if (!roleAtLeast(state.session.role, requiredRole)) return false;
+  if (item && (item.orgId || state.session.orgId) !== state.session.orgId) return false;
+  return true;
+}
+
+function requirePermission(action, item = null) {
+  if (can(action, item)) return true;
+  showToast(`Access denied for ${action} (${state.session.role})`);
+  return false;
+}
+
+function appendAudit(action, details = {}) {
+  const entry = { id: makeId(), ts: Date.now(), orgId: state.session.orgId, role: state.session.role, action, details };
+  state.auditLogs.unshift(entry);
+  state.auditLogs = state.auditLogs.slice(0, 1000);
+  safeSetLocal(AUDIT_LOG_KEY, JSON.stringify(state.auditLogs));
+  renderAuditLogs();
+}
+
+function renderAuditLogs() {
+  if (!els.auditLogList) return;
+  els.auditLogList.innerHTML = '';
+  state.auditLogs.slice(0, 10).forEach((log) => {
+    const li = document.createElement('li');
+    const detail = Object.entries(log.details || {}).map(([k, v]) => `${k}=${String(v)}`).join(', ');
+    li.textContent = `[${new Date(log.ts).toLocaleString()}] [${log.orgId}] ${log.action}${detail ? ` • ${detail}` : ''}`;
+    els.auditLogList.appendChild(li);
+  });
+}
+
+function persistObservability() {
+  safeSetLocal(OBSERVABILITY_KEY, JSON.stringify(state.observability));
+}
+
+function renderObservability() {
+  if (els.obsSummary) {
+    const metrics = Object.entries(state.observability.actionMetrics);
+    if (!metrics.length) {
+      els.obsSummary.textContent = 'No API actions observed yet.';
+    } else {
+      const text = metrics
+        .map(([name, m]) => `${name}: avg ${Math.round(m.totalLatencyMs / Math.max(1, m.count))}ms, err ${m.errors}/${m.count}`)
+        .join(' | ');
+      els.obsSummary.textContent = `Calls ${state.observability.totalCalls}, errors ${state.observability.errors}. ${text}`;
+    }
+  }
+  if (els.ingestionAlert) {
+    const stale = !state.observability.ingestionLastOkAt || Date.now() - state.observability.ingestionLastOkAt > 24 * 60 * 60 * 1000;
+    els.ingestionAlert.textContent = stale
+      ? 'ALERT: ingestion job has not reported success in the last 24h.'
+      : `Ingestion healthy. Last successful run ${formatRelativeTime(state.observability.ingestionLastOkAt)}.`;
+  }
+}
+
+function structuredLog(event, status, latencyMs, context = {}) {
+  console.info('[structured]', JSON.stringify({ ts: new Date().toISOString(), event, status, latencyMs, orgId: state.session.orgId, role: state.session.role, ...context }));
+}
+
+async function trackApiAction(name, fn) {
+  const start = performance.now();
+  let ok = false;
+  try {
+    const result = await fn();
+    ok = true;
+    return result;
+  } catch (error) {
+    state.observability.errors += 1;
+    throw error;
+  } finally {
+    const elapsed = Math.round(performance.now() - start);
+    const metric = state.observability.actionMetrics[name] || { count: 0, totalLatencyMs: 0, errors: 0 };
+    metric.count += 1;
+    metric.totalLatencyMs += elapsed;
+    if (!ok) metric.errors += 1;
+    state.observability.actionMetrics[name] = metric;
+    state.observability.totalCalls += 1;
+    persistObservability();
+    renderObservability();
+    structuredLog(name, ok ? 'ok' : 'error', elapsed);
+  }
+}
+
+function trackWriteRateLimit() {
+  const now = Date.now();
+  state.writeEvents = state.writeEvents.filter((ts) => now - ts < WRITE_RATE_LIMIT.windowMs);
+  if (state.writeEvents.length >= WRITE_RATE_LIMIT.max) return false;
+  state.writeEvents.push(now);
+  return true;
+}
+
+function abuseDetected(item) {
+  const text = `${item.title} ${item.source}`;
+  return ABUSE_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+function updateSessionView() {
+  if (els.orgId) els.orgId.value = state.session.orgId;
+  if (els.userRole) els.userRole.value = state.session.role;
+  if (els.rbacStatus) els.rbacStatus.textContent = `Org ${state.session.orgId} • Role ${state.session.role}`;
 }
 
 function persist() {
@@ -382,6 +595,7 @@ function sortedFilteredItems() {
   const q = state.search.trim().toLowerCase();
 
   return state.items
+    .filter((i) => (i.orgId || state.session.orgId) === state.session.orgId)
     .filter((i) => state.filterCategory === 'all' || i.category === state.filterCategory)
     .filter((i) => i.urgency >= state.filterUrgency)
     .filter((i) => !q || i.title.toLowerCase().includes(q) || i.source.toLowerCase().includes(q))
@@ -493,16 +707,53 @@ function render() {
     scoreEl.setAttribute('aria-label', `Score ${score(item)}. Formula ${scoreBreakdown(item)}`);
     scoreEl.classList.add(`score-${scoreBand(item)}`);
 
+    const editBtn = node.querySelector('.edit');
+    editBtn.title = `Edit signal: ${item.title}`;
+    editBtn.addEventListener('click', () => {
+      trackApiAction('editSignal', async () => {
+        if (!requirePermission('editSignal', item)) return;
+        const ownerInput = window.prompt('Owner', item.owner);
+        if (ownerInput === null) return;
+        const urgencyInput = window.prompt('Urgency (1-5)', String(item.urgency));
+        const relevanceInput = window.prompt('Relevance (1-5)', String(item.relevance));
+        const confidenceInput = window.prompt('Confidence (1-5)', String(item.confidence));
+
+        const nextOwner = cleanText(ownerInput) || item.owner;
+        const nextUrgency = clampInt(urgencyInput, 1, 5, item.urgency);
+        const nextRelevance = clampInt(relevanceInput, 1, 5, item.relevance);
+        const nextConfidence = clampInt(confidenceInput, 1, 5, item.confidence);
+
+        if ((nextUrgency !== item.urgency || nextRelevance !== item.relevance || nextConfidence !== item.confidence) && !requirePermission('changeScore', item)) return;
+        if (nextOwner !== item.owner && !requirePermission('changeOwner', item)) return;
+
+        const previous = { owner: item.owner, urgency: item.urgency, relevance: item.relevance, confidence: item.confidence };
+        item.owner = nextOwner;
+        item.urgency = nextUrgency;
+        item.relevance = nextRelevance;
+        item.confidence = nextConfidence;
+        persist();
+        if (previous.owner !== item.owner) appendAudit('ownership.change', { itemId: item.id, from: previous.owner, to: item.owner });
+        if (previous.urgency !== item.urgency || previous.relevance !== item.relevance || previous.confidence !== item.confidence) {
+          appendAudit('score.change', { itemId: item.id, from: `${previous.urgency}/${previous.relevance}/${previous.confidence}`, to: `${item.urgency}/${item.relevance}/${item.confidence}` });
+        }
+        appendAudit('signal.edit', { itemId: item.id, title: item.title });
+        render();
+        showToast('Signal updated');
+      });
+    });
+
     const deleteBtn = node.querySelector('.delete');
     deleteBtn.title = `Delete signal: ${item.title}`;
     deleteBtn.setAttribute('aria-label', `Delete signal: ${item.title}`);
     deleteBtn.addEventListener('click', (evt) => {
+      if (!requirePermission('deleteSignal', item)) return;
       const skipConfirm = evt.shiftKey;
       const approved = skipConfirm || window.confirm(`Delete this signal?\n\n${item.title}`);
       if (!approved) return;
 
       state.items = state.items.filter((x) => x.id !== item.id);
       persist();
+      appendAudit('signal.delete', { itemId: item.id, title: item.title });
       render();
       showToast(skipConfirm ? 'Signal removed (quick delete)' : 'Signal removed');
     });
@@ -564,7 +815,7 @@ function loadDemoScenario({ silent = false } = {}) {
 
   clearFilters({ silent: true });
   safeRemoveLocal(FORM_DRAFT_KEY);
-  persist();
+  await refreshItemsFromApi();
   render();
   if (!silent) showToast('Demo scenario loaded');
 }
@@ -580,13 +831,13 @@ function focusTopRankedCard() {
   return true;
 }
 
-function runDemoResetHealthMacro({ silentToast = false } = {}) {
+async function runDemoResetHealthMacro({ silentToast = false } = {}) {
   if (!els.demoMacroBtn || els.demoMacroBtn.disabled) return true;
 
   let success = false;
   els.demoMacroBtn.disabled = true;
   try {
-    loadDemoScenario({ silent: true });
+    await loadDemoScenario({ silent: true });
     clearFilters({ silent: true });
     const health = runHealthCheck({ silent: true });
     const focused = focusTopRankedCard();
@@ -611,12 +862,90 @@ async function runJudgeFastPath() {
 
   els.judgeFastPathBtn.disabled = true;
   try {
-    const resetOk = runDemoResetHealthMacro({ silentToast: true });
+    const resetOk = await runDemoResetHealthMacro({ silentToast: true });
     if (!resetOk) return;
     await generateFinalEvidenceBundle({ silentToast: true });
     showToast('Judge fast path complete • Demo reset + final evidence bundle ready');
   } finally {
     els.judgeFastPathBtn.disabled = false;
+  }
+}
+
+
+function backendApiBase() {
+  const custom = globalThis.localStorage?.getItem('community-signal-board-api-base');
+  return custom || 'http://localhost:8791';
+}
+
+function setBackendLabel(text) {
+  if (els.backendStatusCopy) els.backendStatusCopy.textContent = text;
+}
+
+async function pullBoardFromBackend() {
+  const res = await fetch(`${backendApiBase()}/v1/live/board`);
+  if (!res.ok) throw new Error(`backend_board_http_${res.status}`);
+  const payload = await res.json();
+  const ranked = Array.isArray(payload.rankedSignals) ? payload.rankedSignals : [];
+  state.items = ranked.map((signal) => ({
+    id: signal.signalId,
+    title: signal.title || signal.content || signal.signalId,
+    source: signal.source || 'Discord',
+    category: 'Opportunity',
+    urgency: clampInt(signal.weighted || 3, 1, 5, 3),
+    relevance: clampInt(signal.weighted || 3, 1, 5, 3),
+    confidence: 3,
+    owner: signal.owner || 'Unassigned',
+    createdAt: Date.parse(signal.createdAt || new Date().toISOString()),
+  }));
+  render();
+}
+
+function connectBoardStream() {
+  if (!state.backendEnabled) return;
+  if (state.backendEventSource) state.backendEventSource.close();
+  const es = new EventSource(`${backendApiBase()}/v1/live/board/stream`);
+  state.backendEventSource = es;
+  es.addEventListener('board.update', async () => {
+    try {
+      await pullBoardFromBackend();
+      setBackendLabel('Live backend stream');
+    } catch {
+      setBackendLabel('Backend stream active, pull failed');
+    }
+  });
+  es.onerror = () => {
+    setBackendLabel('Backend stream disconnected, local fallback');
+  };
+}
+
+async function setBackendMode(enabled) {
+  state.backendEnabled = !!enabled;
+  if (els.backendToggleBtn) {
+    els.backendToggleBtn.textContent = `Backend Board: ${state.backendEnabled ? 'On' : 'Off'}`;
+    els.backendToggleBtn.setAttribute('aria-pressed', state.backendEnabled ? 'true' : 'false');
+  }
+
+  safeSetLocal(BACKEND_TOGGLE_KEY, state.backendEnabled ? 'on' : 'off');
+
+  if (!state.backendEnabled) {
+    if (state.backendEventSource) state.backendEventSource.close();
+    state.backendEventSource = null;
+    setBackendLabel('Local fallback');
+    return;
+  }
+
+  try {
+    await pullBoardFromBackend();
+    connectBoardStream();
+    setBackendLabel('Live backend stream');
+  } catch {
+    state.backendEnabled = false;
+    safeSetLocal(BACKEND_TOGGLE_KEY, 'off');
+    if (els.backendToggleBtn) {
+      els.backendToggleBtn.textContent = 'Backend Board: Off';
+      els.backendToggleBtn.setAttribute('aria-pressed', 'false');
+    }
+    setBackendLabel('Backend unavailable, local fallback');
   }
 }
 
@@ -713,9 +1042,16 @@ async function generateFinalEvidenceBundle({ silentToast = false } = {}) {
   }
 }
 
-function addItem(evt) {
+async function addItem(evt) {
   evt.preventDefault();
+  if (!requirePermission('createSignal')) return;
+  if (!trackWriteRateLimit()) {
+    showToast('Rate limit reached. Please wait before adding more signals.');
+    return;
+  }
+
   const item = {
+    orgId: state.session.orgId,
     id: makeId(),
     title: cleanText(els.title.value),
     source: cleanText(els.source.value),
@@ -753,6 +1089,12 @@ function addItem(evt) {
     (x) => x.title.toLowerCase() === item.title.toLowerCase() && x.source.toLowerCase() === item.source.toLowerCase(),
   );
 
+  if (abuseDetected(item)) {
+    showFormError('Potential abuse/spam pattern detected. Please revise title/source.', els.title);
+    showToast('Signal blocked by abuse prevention policy');
+    return;
+  }
+
   if (isDuplicate) {
     showFormError('A similar signal already exists. Edit the existing item or add a distinct source.', els.title);
     showToast('Similar signal already exists');
@@ -763,6 +1105,7 @@ function addItem(evt) {
   addActivity(normalizedItem, 'Signal added to board');
   state.items.push(normalizedItem);
   persist();
+  appendAudit('signal.create', { itemId: item.id, title: item.title });
   els.form.reset();
   clearFormError();
   els.urgency.value = 3;
@@ -932,6 +1275,7 @@ function tryDownloadText(filename, text) {
 }
 
 function generateDailyBrief() {
+  if (!requirePermission('exportData')) return;
   const items = sortedFilteredItems();
   if (!items.length) {
     showToast('No signals available for brief');
@@ -940,6 +1284,7 @@ function generateDailyBrief() {
 
   const { date, lines } = buildBriefLines(items);
   tryDownloadText(`community-daily-brief-${date}.md`, lines.join('\n'));
+  appendAudit('export.brief', { count: items.length, date });
   showToast('Daily brief generated');
 }
 
@@ -1008,6 +1353,7 @@ async function generateJudgeSnapshot() {
 }
 
 async function copyTopActions() {
+  if (!requirePermission('exportData')) return;
   const items = sortedFilteredItems();
   if (!items.length) {
     showToast('No signals available to copy');
@@ -1018,6 +1364,7 @@ async function copyTopActions() {
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);
+      appendAudit('export.copyTopActions', { count: items.length });
       showToast('Top actions copied');
       return;
     }
@@ -1044,6 +1391,7 @@ async function copyTopActions() {
 }
 
 function exportDigest() {
+  if (!requirePermission('exportData')) return;
   const items = sortedFilteredItems();
   if (!items.length) {
     showToast('No signals to export');
@@ -1053,6 +1401,7 @@ function exportDigest() {
   const date = new Date().toISOString().slice(0, 10);
   const lines = buildDigestLines(items, date);
   tryDownloadText(`community-signal-digest-${date}.md`, lines.join('\n'));
+  appendAudit('export.digest', { count: items.length, date });
   showToast('Digest exported');
 }
 
@@ -1159,19 +1508,26 @@ els.form.addEventListener('input', (e) => {
     if (els.formError?.hidden === false) clearFormError();
   }
 });
-els.search.addEventListener('input', (e) => {
+els.search.addEventListener('input', async (e) => {
   state.search = e.target.value;
+  await refreshItemsFromApi();
   render();
 });
-els.filterCategory.addEventListener('change', (e) => {
+els.filterCategory.addEventListener('change', async (e) => {
   state.filterCategory = e.target.value;
+  await refreshItemsFromApi();
   render();
 });
-els.filterUrgency.addEventListener('change', (e) => {
+els.filterUrgency.addEventListener('change', async (e) => {
   state.filterUrgency = Number(e.target.value);
+  await refreshItemsFromApi();
   render();
 });
-els.clearFilters.addEventListener('click', () => clearFilters());
+els.clearFilters.addEventListener('click', async () => {
+  clearFilters();
+  await refreshItemsFromApi();
+  render();
+});
 els.applyTemplate?.addEventListener('click', applyTemplatePreset);
 els.loadDemo?.addEventListener('click', () => loadDemoScenario());
 els.exportBtn.addEventListener('click', exportDigest);
@@ -1203,18 +1559,46 @@ els.canonicalEvidenceBtn?.addEventListener('click', () => {
 els.judgeSnapshotBtn?.addEventListener('click', () => {
   generateJudgeSnapshot();
 });
-els.judgeFastPathBtn?.addEventListener('click', () => {
-  runJudgeFastPath();
+els.judgeFastPathBtn?.addEventListener('click', async () => {
+  await runJudgeFastPath();
 });
-els.demoMacroBtn?.addEventListener('click', runDemoResetHealthMacro);
+els.demoMacroBtn?.addEventListener('click', async () => {
+  await runDemoResetHealthMacro();
+});
 els.finalBundleBtn?.addEventListener('click', () => {
   generateFinalEvidenceBundle();
 });
 els.submissionToggleBtn?.addEventListener('click', toggleSubmissionMode);
+els.orgId?.addEventListener('change', (e) => {
+  state.session.orgId = cleanText(e.target.value).slice(0, 64) || DEFAULT_SESSION.orgId;
+  safeSetLocal(SESSION_KEY, JSON.stringify(state.session));
+  updateSessionView();
+  render();
+});
+els.userRole?.addEventListener('change', (e) => {
+  state.session.role = ROLE_ORDER.includes(e.target.value) ? e.target.value : DEFAULT_SESSION.role;
+  safeSetLocal(SESSION_KEY, JSON.stringify(state.session));
+  updateSessionView();
+  render();
+});
+els.exportBackupBtn?.addEventListener('click', () => { exportBackup(); });
+els.restoreBackupInput?.addEventListener('change', (e) => { const file = e.target.files?.[0]; if (file) restoreBackupFromFile(file); });
+els.retentionDays?.addEventListener('change', (e) => {
+  state.retentionDays = clampInt(e.target.value, 1, 3650, state.retentionDays);
+  safeSetLocal(RETENTION_KEY, JSON.stringify(state.retentionDays));
+});
+els.runRetentionBtn?.addEventListener('click', applyRetentionPolicy);
+els.runIngestionCheckBtn?.addEventListener('click', runIngestionAlertCheck);
+els.startTourBtn?.addEventListener('click', startTour);
+els.loadSampleDatasetBtn?.addEventListener('click', loadSampleDataset);
 
 loadFormDraft();
 loadDeliverySettings();
 hydrateDeliveryControls();
 setSubmissionMode(false);
+updateSessionView();
+renderAuditLogs();
+renderObservability();
+if (els.retentionDays) els.retentionDays.value = String(state.retentionDays);
 persist();
 render();

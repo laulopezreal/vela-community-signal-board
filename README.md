@@ -1,15 +1,15 @@
 # Community Signal Board
 
-DEV Weekend Challenge MVP for builder and operator communities.
+Turn community chaos into clear next actions.
 
-## Start Here (Judge-Speed Evidence Path)
-Submission rules authority: [submission/SUBMISSION_RULES_SSOT.md](submission/SUBMISSION_RULES_SSOT.md)
-1. Overview + demo path: [README.md](./README.md)
-2. Deterministic proof index: [docs/SUBMISSION_EVIDENCE_PACK.md](./docs/SUBMISSION_EVIDENCE_PACK.md)
-3. Access-constrained fallback: [docs/JURY_ACCESS_FALLBACK_PACK.md](./docs/JURY_ACCESS_FALLBACK_PACK.md)
+Built for founder and operator communities where opportunities get buried in chat noise.
+
+## Why this exists
+Important updates are scattered across channels and disappear fast.
+Community Signal Board gives you one ranked queue so you can act today, not next week.
 
 ## One-line pitch
-A lightweight app that helps small communities capture scattered updates, rank what matters now, and export a daily action digest.
+A lightweight board that captures community signals, ranks what matters now, and generates a shareable daily digest.
 
 ## What it does
 - Captures high-signal updates manually (title, source, urgency, category, relevance, confidence, owner)
@@ -43,24 +43,65 @@ Small founder and builder groups miss opportunities when important signals are s
 Run the local ingestion bridge from repo root:
 
 ```bash
-node ops/run_local_ingestion.js
-```
-
-This transforms exported external signals into a ranked queue snapshot via the same scoring flow (`urgency * 2 + relevance + confidence`).
-
-## Run locally
-No build step required.
-
-```bash
-cd app
-python3 -m http.server 5173
+npm install
+npm start
 ```
 
 Open: http://localhost:5173
 
+### Backend/auth assumptions
+- This repo now runs a built-in `server/` (Express + SQLite) and serves the front-end from the same port.
+- Authentication uses a **magic-link style** flow via API endpoints (`/api/auth/request-link` + `/api/auth/verify`).
+- For local development, the front-end auto-bootstraps a demo session (`demo@community.local`) and stores only the session token in localStorage.
+- All signal and digest queries are scoped to the authenticated organization through membership checks.
+
+### API endpoints (server)
+- `POST /api/auth/request-link` and `POST /api/auth/verify`
+- `GET /api/me`
+- `GET /api/signals`, `GET /api/signals/filters`, `POST /api/signals`, `PATCH /api/signals/:id`, `DELETE /api/signals/:id`
+- `POST /api/digests/generate`
+
+### Import existing local export JSON
+Use the migration script to import historic local export payloads into org-scoped backend records:
+
+```bash
+npm run import:local-export -- ./docs/artifacts/sample-exported-signals.json "Community Signal Board Demo Org" "demo@community.local"
+```
+
+
+## Connector ingestion pipeline (Discord / Slack / Email)
+
+This repo now includes localized connector jobs that run a deterministic ingestion flow:
+
+1. fetch/import payload (fixture exports under `ops/fixtures/`)
+2. normalize to a shared signal shape
+3. dedupe by `dedupeKey`
+4. score via shared rubric module (`server/lib/scoring/`)
+5. persist with idempotency checks into a local DB file (`server/db/community_signal_board.json`)
+
+Run all connector jobs:
+
+```bash
+node ops/run_connector_jobs.js
+```
+
+Run fixture snapshot check (CI uses the same command):
+
+```bash
+./ops/check_connector_fixtures.sh
+```
+
+### Assumptions made for this implementation
+
+- Because this MVP is local-first and has no dedicated connector backend service yet, the connector "DB" is implemented as a deterministic file-backed store in `server/db/community_signal_board.json` plus a SQL schema reference in `server/db/schema.sql`.
+- Connector run history UI reads a generated static artifact at `app/data/connector-run-history.json`.
+- Existing connector scripts under `ops/` are deterministic fixture drivers, not production ingestion daemons.
+- Connector fixture CI runs on `dev` pushes and pull requests to match the current branch policy.
+- If artifact conflicts happen during rebases/merges, run `./ops/resolve_connector_conflicts.sh` to regenerate deterministic connector + discord fixture outputs before finalizing conflicts.
+
 ## MVP scope
 Included:
-- Signal entry form
+- Signal capture form
 - Ranked dashboard
 - Filters
 - Digest export
@@ -71,9 +112,14 @@ Included:
 - Overdue logic is date-only (`due_at < current local date`) and excludes signals already marked `done` or `dismissed`.
 
 Not included (intentional weekend non-goals):
-- Auth and multi-tenant accounts
 - External API integrations
 - Advanced analytics
+
+
+## Architecture migration assumptions
+- The ADR migration plan assumes organizations are the tenancy boundary and users can belong to multiple organizations via memberships.
+- The current free-text `owner` field remains supported during migration and is mapped to `owner_display_name` until a resolvable user identity is available.
+- MVP UX/scoring reference remains `app/index.html` + `app/main.js`; production work should preserve that behavior while moving persistence to API/DB.
 
 ## Dedicated style improvement loop (parallel to functional loop)
 This repo now runs a separate style loop in parallel with feature work.
@@ -98,16 +144,41 @@ Current style upgrades in this loop:
 - Repo readiness path: [submission/REPO_READINESS.md](submission/REPO_READINESS.md)
 - Jury access fallback pack (artifact-first, no public-repo assumption): [docs/JURY_ACCESS_FALLBACK_PACK.md](docs/JURY_ACCESS_FALLBACK_PACK.md)
 
+
+## Contribution workflow
+- All pull requests must target the `dev` branch.
+- CI enforces this via `.github/workflows/pr-base-dev.yml`; PRs to other base branches will fail the check.
+
 ## 30-second opening narrative
-"Small communities lose real opportunities because high-signal updates are scattered across Slack, email, WhatsApp, and X. Community Signal Board turns that noise into one ranked action queue plus a daily brief and digest in under a minute."
+Small communities lose opportunities because high-signal updates are fragmented across chats and channels. Community Signal Board turns that noise into one ranked action queue plus a daily brief and digest in under a minute.
 
-## Demo narrative (90 seconds)
-1. Turn **Submission Mode ON** and click **Run Judge Fast Path**.
-2. Confirm health/status and deterministic fixture output.
-3. Show ranking order and explain urgency-weighted scoring.
-4. Verify receipt/hash (`ops/verify_receipt_hash.sh`) and artifact links.
-5. Close with impact: fewer missed opportunities, faster shared awareness.
+## Phase1 reliability pipeline (PRD-02)
+Run deterministic reliability path with idempotency + retry + DLQ:
 
-## Judge-proof artifacts
-- Deterministic proof: [docs/DEMO_PROOF_ARTIFACT.md](docs/DEMO_PROOF_ARTIFACT.md)
-- Judge evidence pack (quick index): [docs/SUBMISSION_EVIDENCE_PACK.md](docs/SUBMISSION_EVIDENCE_PACK.md)
+```bash
+node scripts/phase1/run_phase1_pipeline.js data/phase1/sample-phase1-events.json
+```
+
+Inspect DLQ entries:
+
+```bash
+node scripts/phase1/inspect_dlq.js
+node scripts/phase1/inspect_dlq.js --trace <traceId>
+node scripts/phase1/inspect_dlq.js --from 2026-03-02T02:00:00Z --to 2026-03-02T03:00:00Z
+```
+
+Replay failed entries by trace ID or time range:
+
+```bash
+node scripts/phase1/replay_dlq.js --trace <traceId>
+node scripts/phase1/replay_dlq.js --from 2026-03-02T02:00:00Z --to 2026-03-02T03:00:00Z
+```
+
+Persistence files (`data/phase1/`): `idempotency.json`, `normalized-signals.json`, `ranked-board.json`, `dead-letter-queue.jsonl`.
+
+
+## Phase 2 Preview
+Next implementation lane adds realtime board updates and observability baseline:
+- SSE updates for board refresh events
+- `/metrics` and `/readyz` endpoints
+- basic alerting/runbook support

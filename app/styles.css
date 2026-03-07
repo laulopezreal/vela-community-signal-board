@@ -221,6 +221,72 @@ h2 {
   font-size: .9rem;
 }
 
+
+.rbac-controls {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: .7rem;
+  margin-bottom: .72rem;
+  background: rgba(20, 32, 59, 0.45);
+}
+
+.ops-panel {
+  margin-top: .85rem;
+  border-top: 1px solid var(--border);
+  padding-top: .8rem;
+}
+
+.ops-panel h3,
+.observability h3 {
+  margin: 0 0 .55rem;
+  font-size: .95rem;
+}
+
+.file-upload {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.file-upload input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.observability {
+  margin-top: .65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: .7rem;
+  background: rgba(20, 32, 59, 0.36);
+}
+
+.audit-log-list {
+  margin: 0;
+  padding-left: 1rem;
+  color: #c6d5f4;
+  font-size: .8rem;
+}
+
+.edit {
+  width: auto;
+  min-height: 34px;
+  padding: .35rem .68rem;
+  background: rgba(59, 130, 246, 0.16);
+  border: 1px solid rgba(96, 165, 250, 0.5);
+  color: #dbeaff;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.edit:hover {
+  background: rgba(59, 130, 246, 0.35);
+}
+
 .template-controls {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -682,3 +748,23 @@ body.is-submission-mode #toggle-submission-mode {
     bottom: .75rem;
   }
 }
+
+.connector-history {
+  margin: 1rem 0 1.2rem;
+}
+
+#connector-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+#connector-history-table th,
+#connector-history-table td {
+  padding: 0.45rem;
+  border-bottom: 1px solid #e4e8ee;
+  text-align: left;
+}
+
+.connector-status-success { color: #1f8f4d; font-weight: 600; }
+.connector-status-fail { color: #b93838; font-weight: 600; }

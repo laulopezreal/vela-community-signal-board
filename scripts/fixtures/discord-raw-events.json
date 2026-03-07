@@ -1,0 +1,20 @@
+[
+  {
+    "id": "evt-001",
+    "threadId": "thread-42",
+    "channel": "Discord #founders",
+    "author": "alice",
+    "createdAt": "2026-03-01T08:00:00.000Z",
+    "reactionCount": 7,
+    "content": "Urgent sponsor intro possible this week, need outreach playbook and owner today"
+  },
+  {
+    "id": "evt-002",
+    "threadId": "thread-99",
+    "channel": "Discord #product",
+    "author": "bob",
+    "createdAt": "2026-03-01T09:00:00.000Z",
+    "reactionCount": 2,
+    "content": "Parser bug blocking release, we need mitigation and deadline alignment"
+  }
+]
