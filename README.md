@@ -25,6 +25,21 @@ A lightweight board that captures community signals, ranks what matters now, and
 4. Show ranked output and explain the scoring formula.
 5. Close with impact: fewer missed opportunities, faster team alignment.
 
+
+## Assumptions for enterprise controls (local MVP)
+- This remains a local-first browser app with no server/database, so RBAC, audit logs, observability, retention, and backups are implemented in localStorage scope.
+- Organization scope is represented by an `orgId` string selected in-app; all list/query operations are filtered to the active org.
+- Encryption at rest/in transit is represented by optional AES-GCM encrypted backup exports and HTTPS-only deployment guidance.
+- Secrets management is modeled as operational guidance (environment/config discipline), not in-app secret storage.
+
+## New governance, security, and onboarding capabilities
+- **RBAC (org-scoped):** roles `admin`, `manager`, `contributor`, `viewer` now gate create/edit/delete/export/security actions.
+- **Audit logs:** local immutable-style event stream for signal edits, score changes, ownership changes, digest/brief/backup exports, retention runs, and restores.
+- **Observability:** structured console logs (`[structured]` JSON), per-action latency/error counters, and ingestion freshness alert panel.
+- **Backup/restore + retention:** export backup JSON (optionally encrypted), restore backups, and apply retention days to audit log history.
+- **Security hardening:** write-action rate limiting, basic abuse-pattern blocking, org/role permission checks, and encrypted backup option.
+- **Onboarding acceleration:** sample dataset loader and in-app guided tour in addition to existing templates/demo scenario.
+
 ## Run locally
 
 ```bash
