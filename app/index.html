@@ -59,6 +59,20 @@
       <section class="card form-card" data-submission-optional="true">
         <h2>Add Signal</h2>
         <p class="section-copy">Capture one update at a time. Keep titles action-oriented and source-specific.</p>
+        <div class="rbac-controls" aria-label="Organization access controls">
+          <label>Organization
+            <input id="org-id" maxlength="64" value="vela-community" />
+          </label>
+          <label>Role
+            <select id="user-role">
+              <option value="admin">Admin</option>
+              <option value="manager">Manager</option>
+              <option value="contributor" selected>Contributor</option>
+              <option value="viewer">Viewer</option>
+            </select>
+          </label>
+          <p id="rbac-status" class="field-help" role="status" aria-live="polite"></p>
+        </div>
         <div class="template-controls" aria-label="Community templates">
           <label>Template preset
             <select id="community-template">
@@ -92,6 +106,23 @@
           <p id="form-error" class="form-error" role="alert" aria-live="polite" hidden></p>
           <button type="submit">Add Signal</button>
         </form>
+        <div class="ops-panel" aria-label="Operations controls">
+          <h3>Resilience & Security</h3>
+          <div class="filters">
+            <button id="export-backup" type="button" class="btn-muted">Export Backup</button>
+            <label class="btn-muted file-upload">Restore Backup
+              <input id="restore-backup" type="file" accept="application/json" />
+            </label>
+            <button id="run-retention" type="button" class="btn-muted">Apply Retention</button>
+            <button id="run-ingestion-check" type="button" class="btn-muted">Check Ingestion Alerts</button>
+            <button id="start-tour" type="button" class="btn-muted">Start In-app Tour</button>
+            <button id="load-sample-dataset" type="button" class="btn-muted">Load Sample Dataset</button>
+          </div>
+          <label>Retention days
+            <input id="retention-days" type="number" min="1" max="3650" value="180" />
+          </label>
+          <p id="security-status" class="field-help">Security defaults: local encryption for backups, rate-limited write actions, abuse keyword checks.</p>
+        </div>
       </section>
 
       <section class="card list-card">
@@ -130,6 +161,15 @@
           </div>
         </div>
         <p id="health-status" class="health-status" role="status" aria-live="polite">Health not run in this session.</p>
+        <section class="observability" aria-label="Observability dashboard">
+          <h3>Observability</h3>
+          <p id="obs-summary" class="field-help">No API actions observed yet.</p>
+          <p id="ingestion-alert" class="field-help">Ingestion alert state unknown.</p>
+        </section>
+        <section class="observability" aria-label="Audit logs">
+          <h3>Audit Logs (latest 10)</h3>
+          <ul id="audit-log-list" class="audit-log-list"></ul>
+        </section>
         <ul id="signal-list" class="signal-list"></ul>
         <div id="empty" class="empty" role="status" aria-live="polite">
           <p class="empty-title">No signals yet</p>
@@ -148,6 +188,7 @@
         </div>
         <div class="item-right">
           <span class="score"></span>
+          <button class="edit" type="button">Edit</button>
           <button class="delete" type="button">Delete</button>
         </div>
       </li>
