@@ -114,7 +114,7 @@ Responsibilities:
 | `urgency` | `signals.urgency` | `SMALLINT NOT NULL` | Preserve MVP range clamp `1..5`. |
 | `relevance` | `signals.relevance` | `SMALLINT NOT NULL` | Preserve MVP range clamp `1..5`. |
 | `confidence` | `signals.confidence` | `SMALLINT NOT NULL` | Preserve MVP range clamp `1..5`. |
-| `owner` | `signals.owner_display_name` + optional `signals.owner_user_id` | `TEXT NULL` + `UUID NULL` | Keep existing free-text `owner`; allow future linkage to a user account when resolvable. |
+| `owner` | `signals.owner_display_name` + optional `signals.owner_user_id` | `TEXT NOT NULL` + `UUID NULL` | Keep existing free-text `owner` (defaulting to 'Unassigned' if empty, like the MVP); allow future linkage to a user account when resolvable. |
 | `createdAt` | `signals.captured_at` | `TIMESTAMPTZ NOT NULL` | Convert from epoch millis to timestamp with timezone. |
 
 ### Additional backend-managed fields (new)
