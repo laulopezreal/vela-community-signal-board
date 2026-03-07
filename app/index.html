@@ -27,6 +27,27 @@
       <p><strong>Digest-ready</strong><span>One-click markdown export for async sharing.</span></p>
     </section>
 
+    <section class="shell governance-strip" aria-label="Workspace governance and security">
+      <label>Organization
+        <select id="org-context">
+          <option value="vela-main">Vela Main</option>
+          <option value="vela-latam">Vela LATAM</option>
+          <option value="vela-africa">Vela Africa</option>
+        </select>
+      </label>
+      <label>Role
+        <select id="role-context">
+          <option value="admin">Admin</option>
+          <option value="manager">Manager</option>
+          <option value="contributor">Contributor</option>
+          <option value="viewer">Viewer</option>
+        </select>
+      </label>
+      <button id="start-tour" type="button" class="btn-muted">Start In-App Tour</button>
+      <button id="load-sample-dataset" type="button" class="btn-muted">Load Sample Dataset</button>
+      <p id="security-status" class="inline-status">Security: TLS transport expected; local encrypted backups available.</p>
+    </section>
+
     <section id="submission-spotlight" class="shell submission-spotlight" aria-label="Submission demo path" hidden>
       <p class="spotlight-title">Submission demo path (judge-speed)</p>
       <ol>
@@ -127,9 +148,14 @@
             <button id="generate-canonical-evidence" type="button" class="btn-muted submission-optional-control">Generate Canonical Evidence Artifacts</button>
             <button id="generate-judge-snapshot" type="button" class="btn-muted submission-optional-control">Generate Judge Snapshot</button>
             <button id="export-digest" type="button" class="submission-optional-control">Export Digest</button>
+            <button id="export-backup" type="button" class="btn-muted">Export Backup</button>
+            <label class="btn-muted file-btn" for="restore-backup">Restore Backup</label>
+            <input id="restore-backup" type="file" accept="application/json" hidden />
+            <button id="run-retention" type="button" class="btn-muted">Run Retention</button>
           </div>
         </div>
         <p id="health-status" class="health-status" role="status" aria-live="polite">Health not run in this session.</p>
+        <p id="observability-status" class="health-status" role="status" aria-live="polite">Observability dashboard idle.</p>
         <ul id="signal-list" class="signal-list"></ul>
         <div id="empty" class="empty" role="status" aria-live="polite">
           <p class="empty-title">No signals yet</p>
@@ -149,6 +175,9 @@
         <div class="item-right">
           <span class="score"></span>
           <button class="delete" type="button">Delete</button>
+          <button class="edit" type="button">Edit</button>
+          <button class="score-change" type="button">Score</button>
+          <button class="reassign" type="button">Owner</button>
         </div>
       </li>
     </template>
