@@ -26,32 +26,32 @@ A lightweight board that captures community signals, ranks what matters now, and
 5. Close with impact: fewer missed opportunities, faster team alignment.
 
 ## Run locally
-No build step required.
 
 ```bash
-cd app
-python3 -m http.server 5173
+npm install
+npm start
 ```
 
 Open: http://localhost:5173
 
-## Phase0 API quickcheck
-- Contracts: `contracts/phase0/contracts.json`
-- API server: `node server/phase0/server.js`
-- Deterministic fixture demo: `node scripts/phase0/demo_phase0_flow.js`
+### Backend/auth assumptions
+- This repo now runs a built-in `server/` (Express + SQLite) and serves the front-end from the same port.
+- Authentication uses a **magic-link style** flow via API endpoints (`/api/auth/request-link` + `/api/auth/verify`).
+- For local development, the front-end auto-bootstraps a demo session (`demo@community.local`) and stores only the session token in localStorage.
+- All signal and digest queries are scoped to the authenticated organization through membership checks.
 
-## Challenge alignment
-### Value Proposition
-Helps real communities convert scattered signals into a same-day action queue.
+### API endpoints (server)
+- `POST /api/auth/request-link` and `POST /api/auth/verify`
+- `GET /api/me`
+- `GET /api/signals`, `GET /api/signals/filters`, `POST /api/signals`, `PATCH /api/signals/:id`, `DELETE /api/signals/:id`
+- `POST /api/digests/generate`
 
-### Creativity
-Applies a simple, explainable prioritization engine to noisy community workflows.
+### Import existing local export JSON
+Use the migration script to import historic local export payloads into org-scoped backend records:
 
-### Technical Execution
-Deterministic ranking, fast UI flow, and practical export path for real team use.
-
-### Writing Quality
-Clear story: noise in, priority out, action taken.
+```bash
+npm run import:local-export -- ./docs/artifacts/sample-exported-signals.json "Community Signal Board Demo Org" "demo@community.local"
+```
 
 ## MVP scope
 Included:
@@ -60,8 +60,7 @@ Included:
 - Filters
 - Digest export
 
-Not included (intentional):
-- Auth and multi-tenant accounts
+Not included (intentional weekend non-goals):
 - External API integrations
 - Advanced analytics
 
