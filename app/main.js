@@ -1,5 +1,6 @@
-const STORAGE_KEY = 'community-signal-board-v1';
 const FORM_DRAFT_KEY = 'community-signal-board-form-draft-v1';
+const AUTH_SESSION_KEY = 'community-signal-board-auth-v1';
+const API_BASE = globalThis.CSB_API_BASE || 'http://localhost:8787';
 
 const TEMPLATE_PRESETS = {
   startup: {
@@ -81,38 +82,13 @@ const CANONICAL_EXPECTED_MANIFEST = {
   },
 };
 
-function safeLoadItems() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = JSON.parse(raw || '[]');
-    if (!Array.isArray(parsed)) return [];
-
-    return parsed
-      .map((item) => ({
-        id: typeof item.id === 'string' ? item.id : `legacy-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        title: cleanText(String(item.title || '')),
-        source: cleanText(String(item.source || '')),
-        category: ['Opportunity', 'Funding', 'Event', 'Tool', 'Hiring'].includes(item.category)
-          ? item.category
-          : 'Opportunity',
-        urgency: clampInt(item.urgency, 1, 5, 3),
-        relevance: clampInt(item.relevance, 1, 5, 3),
-        confidence: clampInt(item.confidence, 1, 5, 3),
-        owner: cleanText(String(item.owner || '')) || 'Unassigned',
-        createdAt: Number.isFinite(Number(item.createdAt)) ? Number(item.createdAt) : Date.now(),
-      }))
-      .filter((item) => item.title && item.source);
-  } catch {
-    return [];
-  }
-}
-
 const state = {
-  items: safeLoadItems(),
+  items: [],
   filterCategory: 'all',
   filterUrgency: 0,
   search: '',
   submissionMode: false,
+  authToken: '',
 };
 
 const els = {
@@ -249,9 +225,72 @@ function showToast(text) {
 }
 
 function persist() {
-  const ok = safeSetLocal(STORAGE_KEY, JSON.stringify(state.items));
-  if (!ok) showToast('Storage unavailable: data will not persist after refresh');
-  return ok;
+  return true;
+}
+
+function sessionToken() {
+  if (state.authToken) return state.authToken;
+  try {
+    const raw = safeGetLocal(AUTH_SESSION_KEY);
+    if (!raw) return '';
+    const parsed = JSON.parse(raw);
+    return typeof parsed?.accessToken === 'string' ? parsed.accessToken : '';
+  } catch {
+    return '';
+  }
+}
+
+async function apiRequest(path, { method = 'GET', body } = {}) {
+  const token = sessionToken();
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `API request failed: ${res.status}`);
+  return data;
+}
+
+async function ensureApiSession() {
+  const existing = sessionToken();
+  if (existing) {
+    state.authToken = existing;
+    return;
+  }
+
+  const email = `${(globalThis.prompt?.('Enter email for magic-link sign in', 'demo@local.dev') || 'demo@local.dev').trim().toLowerCase()}`;
+  const req = await apiRequest('/auth/request-magic-link', {
+    method: 'POST',
+    body: { email, organizationName: 'Community Org' },
+  });
+  const verified = await apiRequest('/auth/verify-magic-link', {
+    method: 'POST',
+    body: { token: req.token },
+  });
+  state.authToken = verified.accessToken;
+  safeSetLocal(AUTH_SESSION_KEY, JSON.stringify({ accessToken: verified.accessToken }));
+}
+
+function normalizeApiSignal(item) {
+  return {
+    ...item,
+    createdAt: Date.parse(item.created_at) || Date.now(),
+  };
+}
+
+async function loadItemsFromApi() {
+  const params = new URLSearchParams();
+  params.set('sort', 'score_desc');
+  if (state.filterCategory && state.filterCategory !== 'all') params.set('category', state.filterCategory);
+  if (state.filterUrgency) params.set('minUrgency', String(state.filterUrgency));
+  if (state.search.trim()) params.set('search', state.search.trim());
+  const query = params.toString();
+  const data = await apiRequest(`/signals${query ? `?${query}` : ''}`);
+  state.items = (data.items || []).map(normalizeApiSignal);
 }
 
 function setFieldInvalid(field, invalid) {
@@ -339,14 +378,19 @@ function render() {
     const deleteBtn = node.querySelector('.delete');
     deleteBtn.title = `Delete signal: ${item.title}`;
     deleteBtn.setAttribute('aria-label', `Delete signal: ${item.title}`);
-    deleteBtn.addEventListener('click', (evt) => {
+    deleteBtn.addEventListener('click', async (evt) => {
       const skipConfirm = evt.shiftKey;
       const approved = skipConfirm || window.confirm(`Delete this signal?\n\n${item.title}`);
       if (!approved) return;
 
-      state.items = state.items.filter((x) => x.id !== item.id);
-      persist();
-      render();
+      try {
+        await apiRequest(`/signals/${item.id}`, { method: 'DELETE' });
+        await loadItemsFromApi();
+        render();
+      } catch (error) {
+        showToast(error.message || 'Delete failed');
+        return;
+      }
       showToast(skipConfirm ? 'Signal removed (quick delete)' : 'Signal removed');
     });
     els.list.appendChild(node);
@@ -382,26 +426,37 @@ function applyTemplatePreset() {
   showToast('Template applied');
 }
 
-function clearFilters({ silent = false } = {}) {
+async function clearFilters({ silent = false } = {}) {
   state.search = '';
   state.filterCategory = 'all';
   state.filterUrgency = 0;
   els.search.value = '';
   els.filterCategory.value = 'all';
   els.filterUrgency.value = '0';
+  await loadItemsFromApi();
   render();
   if (!silent) showToast('Filters reset');
 }
 
-function loadDemoScenario({ silent = false } = {}) {
-  state.items = DEMO_SCENARIO_ITEMS.map((item, idx) => ({
-    ...item,
-    id: `demo-${idx + 1}`,
-  }));
+async function loadDemoScenario({ silent = false } = {}) {
+  try {
+    for (const item of DEMO_SCENARIO_ITEMS) {
+      await apiRequest('/signals', {
+        method: 'POST',
+        body: {
+          ...item,
+          createdAt: new Date(item.createdAt).toISOString(),
+        },
+      });
+    }
+  } catch (error) {
+    showToast(error.message || 'Failed to load demo scenario');
+    return;
+  }
 
-  clearFilters({ silent: true });
+  await clearFilters({ silent: true });
   safeRemoveLocal(FORM_DRAFT_KEY);
-  persist();
+  await loadItemsFromApi();
   render();
   if (!silent) showToast('Demo scenario loaded');
 }
@@ -417,14 +472,14 @@ function focusTopRankedCard() {
   return true;
 }
 
-function runDemoResetHealthMacro({ silentToast = false } = {}) {
+async function runDemoResetHealthMacro({ silentToast = false } = {}) {
   if (!els.demoMacroBtn || els.demoMacroBtn.disabled) return true;
 
   let success = false;
   els.demoMacroBtn.disabled = true;
   try {
-    loadDemoScenario({ silent: true });
-    clearFilters({ silent: true });
+    await loadDemoScenario({ silent: true });
+    await clearFilters({ silent: true });
     const health = runHealthCheck({ silent: true });
     const focused = focusTopRankedCard();
 
@@ -448,7 +503,7 @@ async function runJudgeFastPath() {
 
   els.judgeFastPathBtn.disabled = true;
   try {
-    const resetOk = runDemoResetHealthMacro({ silentToast: true });
+    const resetOk = await runDemoResetHealthMacro({ silentToast: true });
     if (!resetOk) return;
     await generateFinalEvidenceBundle({ silentToast: true });
     showToast('Judge fast path complete • Demo reset + final evidence bundle ready');
@@ -550,7 +605,7 @@ async function generateFinalEvidenceBundle({ silentToast = false } = {}) {
   }
 }
 
-function addItem(evt) {
+async function addItem(evt) {
   evt.preventDefault();
   const item = {
     id: makeId(),
@@ -590,8 +645,13 @@ function addItem(evt) {
     return;
   }
 
-  state.items.push(item);
-  persist();
+  try {
+    await apiRequest('/signals', { method: 'POST', body: item });
+    await loadItemsFromApi();
+  } catch (error) {
+    showToast(error.message || 'Failed to save signal');
+    return;
+  }
   els.form.reset();
   clearFormError();
   els.urgency.value = 3;
@@ -872,17 +932,21 @@ async function copyTopActions() {
   showToast(copied ? 'Top actions copied' : 'Copy failed: use Generate Daily Brief instead');
 }
 
-function exportDigest() {
+async function exportDigest() {
   const items = sortedFilteredItems();
   if (!items.length) {
     showToast('No signals to export');
     return;
   }
 
-  const date = new Date().toISOString().slice(0, 10);
-  const lines = buildDigestLines(items, date);
-  tryDownloadText(`community-signal-digest-${date}.md`, lines.join('\n'));
-  showToast('Digest exported');
+  try {
+    const digest = await apiRequest('/digests/generate', { method: 'POST', body: { topN: items.length } });
+    const date = new Date().toISOString().slice(0, 10);
+    tryDownloadText(`community-signal-digest-${date}.md`, digest.markdown);
+    showToast('Digest exported');
+  } catch (error) {
+    showToast(error.message || 'Digest export failed');
+  }
 }
 
 function setHealthStatus(text, level = 'pass') {
@@ -936,21 +1000,24 @@ els.form.addEventListener('input', (e) => {
     if (els.formError?.hidden === false) clearFormError();
   }
 });
-els.search.addEventListener('input', (e) => {
+els.search.addEventListener('input', async (e) => {
   state.search = e.target.value;
+  await loadItemsFromApi();
   render();
 });
-els.filterCategory.addEventListener('change', (e) => {
+els.filterCategory.addEventListener('change', async (e) => {
   state.filterCategory = e.target.value;
+  await loadItemsFromApi();
   render();
 });
-els.filterUrgency.addEventListener('change', (e) => {
+els.filterUrgency.addEventListener('change', async (e) => {
   state.filterUrgency = Number(e.target.value);
+  await loadItemsFromApi();
   render();
 });
-els.clearFilters.addEventListener('click', () => clearFilters());
+els.clearFilters.addEventListener('click', async () => clearFilters());
 els.applyTemplate?.addEventListener('click', applyTemplatePreset);
-els.loadDemo?.addEventListener('click', () => loadDemoScenario());
+els.loadDemo?.addEventListener('click', async () => loadDemoScenario());
 els.exportBtn.addEventListener('click', exportDigest);
 els.briefBtn.addEventListener('click', generateDailyBrief);
 els.copyBriefBtn?.addEventListener('click', copyTopActions);
@@ -964,13 +1031,25 @@ els.judgeSnapshotBtn?.addEventListener('click', () => {
 els.judgeFastPathBtn?.addEventListener('click', () => {
   runJudgeFastPath();
 });
-els.demoMacroBtn?.addEventListener('click', runDemoResetHealthMacro);
+els.demoMacroBtn?.addEventListener('click', async () => {
+  await runDemoResetHealthMacro();
+});
 els.finalBundleBtn?.addEventListener('click', () => {
   generateFinalEvidenceBundle();
 });
 els.submissionToggleBtn?.addEventListener('click', toggleSubmissionMode);
 
-loadFormDraft();
-setSubmissionMode(false);
-persist();
-render();
+async function init() {
+  loadFormDraft();
+  setSubmissionMode(false);
+  try {
+    await ensureApiSession();
+    await loadItemsFromApi();
+  } catch (error) {
+    showToast(error.message || 'Backend unavailable');
+  }
+  persist();
+  render();
+}
+
+init();
