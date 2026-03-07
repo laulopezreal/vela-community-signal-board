@@ -73,6 +73,7 @@ Run fixture snapshot check (CI uses the same command):
 - Connector run history UI reads a generated static artifact at `app/data/connector-run-history.json`.
 - Existing `ops/` scripts remain deterministic fixture drivers, not production ingestion daemons.
 - Connector fixture CI is configured to run on `dev` pushes and pull requests, matching the active integration branch policy.
+- If artifact conflicts happen during rebases/merges, run `./ops/resolve_connector_conflicts.sh` to regenerate deterministic connector + discord fixture outputs before finalizing conflict resolution.
 
 ## Run locally
 No build step required.

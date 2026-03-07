@@ -54,7 +54,16 @@ function aggregateThreads(signals) {
   return [...byThread.values()].sort((a, b) => b.topWeighted - a.topWeighted || b.messageCount - a.messageCount);
 }
 
-function buildDecisions(ranked, now = new Date()) {
+function deriveDecisionBaseTime(ranked) {
+  const latest = ranked
+    .map((s) => new Date(s.createdAt).getTime())
+    .filter((v) => Number.isFinite(v))
+    .sort((a, b) => b - a)[0];
+  if (!Number.isFinite(latest)) return new Date('2026-01-01T00:00:00.000Z');
+  return new Date(latest);
+}
+
+function buildDecisions(ranked, now = deriveDecisionBaseTime(ranked)) {
   return ranked.slice(0, 5).map((s, idx) => ({
     decisionId: `dec_${s.signalId}`,
     signalId: s.signalId,

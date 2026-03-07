@@ -4,7 +4,7 @@
     "signalId": "sig_aa52670552c1",
     "owner": "Growth lead",
     "action": "Triage in standup and monitor for escalation",
-    "deadline": "2026-03-07T06:39:56.119Z",
+    "deadline": "2026-02-28T15:27:00.000Z",
     "expectedMetric": "triage latency: down",
     "weightedScore": 2.95
   },
@@ -13,7 +13,7 @@
     "signalId": "sig_26d8869b7c5a",
     "owner": "Growth lead",
     "action": "Triage in standup and monitor for escalation",
-    "deadline": "2026-03-07T08:39:56.119Z",
+    "deadline": "2026-02-28T17:27:00.000Z",
     "expectedMetric": "triage latency: down",
     "weightedScore": 2.85
   },
@@ -22,7 +22,7 @@
     "signalId": "sig_23433779b316",
     "owner": "Product lead",
     "action": "Triage in standup and monitor for escalation",
-    "deadline": "2026-03-07T10:39:56.119Z",
+    "deadline": "2026-02-28T19:27:00.000Z",
     "expectedMetric": "triage latency: down",
     "weightedScore": 2.75
   },
@@ -31,7 +31,7 @@
     "signalId": "sig_4f5d764bcb4a",
     "owner": "Product lead",
     "action": "Triage in standup and monitor for escalation",
-    "deadline": "2026-03-07T12:39:56.119Z",
+    "deadline": "2026-02-28T21:27:00.000Z",
     "expectedMetric": "triage latency: down",
     "weightedScore": 2.75
   },
@@ -40,7 +40,7 @@
     "signalId": "sig_002e26f8be93",
     "owner": "Community lead",
     "action": "Triage in standup and monitor for escalation",
-    "deadline": "2026-03-07T14:39:56.119Z",
+    "deadline": "2026-02-28T23:27:00.000Z",
     "expectedMetric": "triage latency: down",
     "weightedScore": 2.2
   }

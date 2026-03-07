@@ -1,0 +1,6 @@
+# Generated local connector artifacts (rebuild from fixtures)
+docs/artifacts/connector-pipeline/
+server/db/community_signal_board.json
+
+# Local python cache
+__pycache__/
