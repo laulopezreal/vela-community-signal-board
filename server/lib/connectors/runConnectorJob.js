@@ -29,7 +29,7 @@ function runConnectorJob({ connector, inputPath, outputDir }) {
 
     const dedupeClusters = clusterDedupe(normalized);
     const deduped = dedupeClusters.map((cluster) => normalized.find((s) => s.signalId === cluster.canonicalSignalId)).filter(Boolean);
-    const scored = [...deduped].sort((a, b) => b.weighted - a.weighted || b.createdAt.localeCompare(a.createdAt));
+    const sortedSignals = [...deduped].sort((a, b) => b.weighted - a.weighted || b.createdAt.localeCompare(a.createdAt));
 
     const inserted = upsertSignals(scored);
     const finishedAt = new Date().toISOString();
