@@ -1,5 +1,49 @@
 const STORAGE_KEY = 'community-signal-board-v1';
 const FORM_DRAFT_KEY = 'community-signal-board-form-draft-v1';
+const POLICY_KEY = 'community-signal-board-policy-v1';
+const POLICY_HISTORY_KEY = 'community-signal-board-policy-history-v1';
+const RECOMMENDATION_FEEDBACK_KEY = 'community-signal-board-recommendation-feedback-v1';
+
+const SCORING_DEFAULT_POLICY_V1 = {
+  version: 'v1',
+  weights: { urgency: 2, relevance: 1, confidence: 1 },
+  categoryMultipliers: { Opportunity: 1, Funding: 1, Event: 1, Tool: 1, Hiring: 1 },
+  confidenceHandling: 'linear',
+};
+
+const ORG_OPTIONS = [
+  { value: 'default', label: 'Default Org' },
+  { value: 'startup', label: 'Startup Collective' },
+  { value: 'oss', label: 'OSS Maintainers' },
+  { value: 'local-org', label: 'Local Org' },
+];
+
+const RECOMMENDATION_LIBRARY = {
+  urgent: [
+    'Act now: assign owner and post to core channel in the next 30 minutes.',
+    'Escalate to the duty lead and set a 30-minute checkpoint in your ops thread.',
+  ],
+  Funding: [
+    'Check eligibility and draft application notes before end of day.',
+    'Open a shared checklist and assign application owner + deadline today.',
+  ],
+  Hiring: [
+    'Share with hiring lead and capture candidate/referral deadline.',
+    'Forward to recruiting channel with role fit and closing date.',
+  ],
+  Event: [
+    'Confirm attendance window and who will represent the community.',
+    'Create attendee owner list and publish RSVP deadline in chat.',
+  ],
+  Opportunity: [
+    'Validate fit and send outreach while signal is still fresh.',
+    'Prioritize partner outreach now and log expected value by end of day.',
+  ],
+  default: [
+    'Log next step and owner for tomorrow morning standup.',
+    'Set a concrete next step with owner and a same-day check-in.',
+  ],
+};
 
 const TEMPLATE_PRESETS = {
   startup: {
@@ -37,6 +81,7 @@ const DEMO_SCENARIO_ITEMS = [
     relevance: 4,
     confidence: 4,
     owner: 'Ops lead',
+    organization: 'default',
     createdAt: Date.parse('2026-02-27T09:10:00Z'),
   },
   {
@@ -47,6 +92,7 @@ const DEMO_SCENARIO_ITEMS = [
     relevance: 5,
     confidence: 4,
     owner: 'Partnerships',
+    organization: 'startup',
     createdAt: Date.parse('2026-02-27T08:50:00Z'),
   },
   {
@@ -57,6 +103,7 @@ const DEMO_SCENARIO_ITEMS = [
     relevance: 4,
     confidence: 3,
     owner: 'Talent lead',
+    organization: 'local-org',
     createdAt: Date.parse('2026-02-27T08:20:00Z'),
   },
   {
@@ -67,6 +114,7 @@ const DEMO_SCENARIO_ITEMS = [
     relevance: 4,
     confidence: 3,
     owner: 'Tech lead',
+    organization: 'oss',
     createdAt: Date.parse('2026-02-27T07:50:00Z'),
   },
 ];
@@ -81,27 +129,90 @@ const CANONICAL_EXPECTED_MANIFEST = {
   },
 };
 
+function normalizePolicy(policy) {
+  const raw = policy && typeof policy === 'object' ? policy : {};
+  const weights = raw.weights && typeof raw.weights === 'object' ? raw.weights : {};
+  const categoryMultipliers = raw.categoryMultipliers && typeof raw.categoryMultipliers === 'object' ? raw.categoryMultipliers : {};
+  const confidenceHandling = ['linear', 'boost-high', 'gate-low'].includes(raw.confidenceHandling) ? raw.confidenceHandling : 'linear';
+  return {
+    version: cleanText(String(raw.version || 'v1')) || 'v1',
+    weights: {
+      urgency: clampFloat(weights.urgency, 0, 5, SCORING_DEFAULT_POLICY_V1.weights.urgency),
+      relevance: clampFloat(weights.relevance, 0, 5, SCORING_DEFAULT_POLICY_V1.weights.relevance),
+      confidence: clampFloat(weights.confidence, 0, 5, SCORING_DEFAULT_POLICY_V1.weights.confidence),
+    },
+    categoryMultipliers: {
+      Opportunity: clampFloat(categoryMultipliers.Opportunity, 0.5, 3, 1),
+      Funding: clampFloat(categoryMultipliers.Funding, 0.5, 3, 1),
+      Event: clampFloat(categoryMultipliers.Event, 0.5, 3, 1),
+      Tool: clampFloat(categoryMultipliers.Tool, 0.5, 3, 1),
+      Hiring: clampFloat(categoryMultipliers.Hiring, 0.5, 3, 1),
+    },
+    confidenceHandling,
+  };
+}
+
+function safeLoadPolicies() {
+  try {
+    const parsed = JSON.parse(safeGetLocal(POLICY_KEY) || '{}');
+    const policies = {};
+    ORG_OPTIONS.forEach((org) => {
+      policies[org.value] = normalizePolicy(parsed?.[org.value] || SCORING_DEFAULT_POLICY_V1);
+    });
+    return policies;
+  } catch {
+    const policies = {};
+    ORG_OPTIONS.forEach((org) => {
+      policies[org.value] = normalizePolicy(SCORING_DEFAULT_POLICY_V1);
+    });
+    return policies;
+  }
+}
+
+function safeLoadPolicyHistory() {
+  try {
+    const parsed = JSON.parse(safeGetLocal(POLICY_HISTORY_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed.slice(-20) : [];
+  } catch {
+    return [];
+  }
+}
+
+function safeLoadRecommendationFeedback() {
+  try {
+    const parsed = JSON.parse(safeGetLocal(RECOMMENDATION_FEEDBACK_KEY) || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function normalizeItem(item) {
+  return {
+    id: typeof item.id === 'string' ? item.id : `legacy-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    title: cleanText(String(item.title || '')),
+    source: cleanText(String(item.source || '')),
+    category: ['Opportunity', 'Funding', 'Event', 'Tool', 'Hiring'].includes(item.category) ? item.category : 'Opportunity',
+    organization: ORG_OPTIONS.some((org) => org.value === item.organization) ? item.organization : 'default',
+    urgency: clampInt(item.urgency, 1, 5, 3),
+    relevance: clampInt(item.relevance, 1, 5, 3),
+    confidence: clampInt(item.confidence, 1, 5, 3),
+    owner: cleanText(String(item.owner || '')) || 'Unassigned',
+    createdAt: Number.isFinite(Number(item.createdAt)) ? Number(item.createdAt) : Date.now(),
+    triagedAt: Number.isFinite(Number(item.triagedAt)) ? Number(item.triagedAt) : null,
+    actedAt: Number.isFinite(Number(item.actedAt)) ? Number(item.actedAt) : null,
+    completedAt: Number.isFinite(Number(item.completedAt)) ? Number(item.completedAt) : null,
+    missedAt: Number.isFinite(Number(item.missedAt)) ? Number(item.missedAt) : null,
+    recommendationFeedback: item.recommendationFeedback === 'not-useful' ? 'not-useful' : item.recommendationFeedback === 'useful' ? 'useful' : null,
+  };
+}
+
 function safeLoadItems() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const parsed = JSON.parse(raw || '[]');
     if (!Array.isArray(parsed)) return [];
-
-    return parsed
-      .map((item) => ({
-        id: typeof item.id === 'string' ? item.id : `legacy-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        title: cleanText(String(item.title || '')),
-        source: cleanText(String(item.source || '')),
-        category: ['Opportunity', 'Funding', 'Event', 'Tool', 'Hiring'].includes(item.category)
-          ? item.category
-          : 'Opportunity',
-        urgency: clampInt(item.urgency, 1, 5, 3),
-        relevance: clampInt(item.relevance, 1, 5, 3),
-        confidence: clampInt(item.confidence, 1, 5, 3),
-        owner: cleanText(String(item.owner || '')) || 'Unassigned',
-        createdAt: Number.isFinite(Number(item.createdAt)) ? Number(item.createdAt) : Date.now(),
-      }))
-      .filter((item) => item.title && item.source);
+    return parsed.map((item) => normalizeItem(item)).filter((item) => item.title && item.source);
   } catch {
     return [];
   }
@@ -109,6 +220,10 @@ function safeLoadItems() {
 
 const state = {
   items: safeLoadItems(),
+  policies: safeLoadPolicies(),
+  policyHistory: safeLoadPolicyHistory(),
+  recommendationFeedback: safeLoadRecommendationFeedback(),
+  activeOrg: 'default',
   filterCategory: 'all',
   filterUrgency: 0,
   search: '',
@@ -124,6 +239,7 @@ const els = {
   relevance: document.getElementById('relevance'),
   confidence: document.getElementById('confidence'),
   owner: document.getElementById('owner'),
+  organization: document.getElementById('organization'),
   formError: document.getElementById('form-error'),
   template: document.getElementById('community-template'),
   applyTemplate: document.getElementById('apply-template'),
@@ -152,21 +268,68 @@ const els = {
   statHigh: document.getElementById('stat-high'),
   statAvg: document.getElementById('stat-avg'),
   statAssigned: document.getElementById('stat-assigned'),
+  policyOrg: document.getElementById('policy-org'),
+  policyVersion: document.getElementById('policy-version'),
+  policyUrgencyWeight: document.getElementById('policy-urgency-weight'),
+  policyRelevanceWeight: document.getElementById('policy-relevance-weight'),
+  policyConfidenceWeight: document.getElementById('policy-confidence-weight'),
+  policyConfidenceMode: document.getElementById('policy-confidence-mode'),
+  policyMultFunding: document.getElementById('policy-mult-funding'),
+  policyMultHiring: document.getElementById('policy-mult-hiring'),
+  policyMultEvent: document.getElementById('policy-mult-event'),
+  policyMultTool: document.getElementById('policy-mult-tool'),
+  policyMultOpportunity: document.getElementById('policy-mult-opportunity'),
+  savePolicyBtn: document.getElementById('save-policy'),
+  resetPolicyBtn: document.getElementById('reset-policy'),
+  policyPreview: document.getElementById('policy-preview'),
+  metricTriage: document.getElementById('metric-triage'),
+  metricAction: document.getElementById('metric-action'),
+  metricHighCompletion: document.getElementById('metric-high-completion'),
+  metricMissed: document.getElementById('metric-missed'),
+  policyChangeSummary: document.getElementById('policy-change-summary'),
   toast: document.getElementById('toast'),
 };
 
+function policyForOrg(org = 'default') {
+  return state.policies[org] || normalizePolicy(SCORING_DEFAULT_POLICY_V1);
+}
+
+function applyConfidenceHandling(confidence, mode) {
+  if (mode === 'boost-high' && confidence >= 4) return confidence + 1;
+  if (mode === 'gate-low' && confidence <= 2) return Math.max(0, confidence - 1);
+  return confidence;
+}
+
 function score(item) {
-  return item.urgency * 2 + item.relevance + item.confidence;
+  const policy = policyForOrg(item.organization || 'default');
+  const confidenceTerm = applyConfidenceHandling(item.confidence, policy.confidenceHandling);
+  const weightedBase = (item.urgency * policy.weights.urgency)
+    + (item.relevance * policy.weights.relevance)
+    + (confidenceTerm * policy.weights.confidence);
+  const multiplier = policy.categoryMultipliers[item.category] || 1;
+  return Number((weightedBase * multiplier).toFixed(2));
 }
 
 function scoreBreakdown(item) {
-  return `${item.urgency}*2 + ${item.relevance} + ${item.confidence} = ${score(item)}`;
+  const policy = policyForOrg(item.organization || 'default');
+  const confidenceTerm = applyConfidenceHandling(item.confidence, policy.confidenceHandling);
+  const multiplier = policy.categoryMultipliers[item.category] || 1;
+  const weightedBase = (item.urgency * policy.weights.urgency)
+    + (item.relevance * policy.weights.relevance)
+    + (confidenceTerm * policy.weights.confidence);
+  return `(${item.urgency}*${policy.weights.urgency}) + (${item.relevance}*${policy.weights.relevance}) + (${confidenceTerm}*${policy.weights.confidence}) x ${multiplier} = ${Number((weightedBase * multiplier).toFixed(2))}`;
 }
 
 function clampInt(value, min, max, fallback) {
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
   return Math.min(max, Math.max(min, Math.round(n)));
+}
+
+function clampFloat(value, min, max, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, Number(n.toFixed(2))));
 }
 
 function cleanText(value) {
@@ -219,6 +382,7 @@ function loadFormDraft() {
     els.relevance.value = String(clampInt(draft.relevance, 1, 5, 3));
     els.confidence.value = String(clampInt(draft.confidence, 1, 5, 3));
     els.owner.value = typeof draft.owner === 'string' ? draft.owner : '';
+    els.organization.value = typeof draft.organization === 'string' ? draft.organization : 'default';
   } catch {
     safeRemoveLocal(FORM_DRAFT_KEY);
   }
@@ -233,6 +397,7 @@ function saveFormDraft() {
     relevance: els.relevance.value,
     confidence: els.confidence.value,
     owner: els.owner.value,
+    organization: els.organization.value,
   };
   safeSetLocal(FORM_DRAFT_KEY, JSON.stringify(draft));
 }
@@ -252,6 +417,85 @@ function persist() {
   const ok = safeSetLocal(STORAGE_KEY, JSON.stringify(state.items));
   if (!ok) showToast('Storage unavailable: data will not persist after refresh');
   return ok;
+}
+
+function persistPolicies() {
+  safeSetLocal(POLICY_KEY, JSON.stringify(state.policies));
+  safeSetLocal(POLICY_HISTORY_KEY, JSON.stringify(state.policyHistory.slice(-20)));
+}
+
+function policyFromForm() {
+  return normalizePolicy({
+    version: cleanText(els.policyVersion?.value || 'v1') || 'v1',
+    weights: {
+      urgency: els.policyUrgencyWeight?.value,
+      relevance: els.policyRelevanceWeight?.value,
+      confidence: els.policyConfidenceWeight?.value,
+    },
+    confidenceHandling: els.policyConfidenceMode?.value,
+    categoryMultipliers: {
+      Funding: els.policyMultFunding?.value,
+      Hiring: els.policyMultHiring?.value,
+      Event: els.policyMultEvent?.value,
+      Tool: els.policyMultTool?.value,
+      Opportunity: els.policyMultOpportunity?.value,
+    },
+  });
+}
+
+function fillPolicyForm(org) {
+  const policy = policyForOrg(org);
+  if (!els.policyVersion) return;
+  els.policyVersion.value = policy.version;
+  els.policyUrgencyWeight.value = String(policy.weights.urgency);
+  els.policyRelevanceWeight.value = String(policy.weights.relevance);
+  els.policyConfidenceWeight.value = String(policy.weights.confidence);
+  els.policyConfidenceMode.value = policy.confidenceHandling;
+  els.policyMultFunding.value = String(policy.categoryMultipliers.Funding);
+  els.policyMultHiring.value = String(policy.categoryMultipliers.Hiring);
+  els.policyMultEvent.value = String(policy.categoryMultipliers.Event);
+  els.policyMultTool.value = String(policy.categoryMultipliers.Tool);
+  els.policyMultOpportunity.value = String(policy.categoryMultipliers.Opportunity);
+  updatePolicyPreview(policy);
+}
+
+function updatePolicyPreview(policy = policyFromForm()) {
+  if (!els.policyPreview) return;
+  els.policyPreview.textContent = `Preview: (${policy.weights.urgency}*urgency + ${policy.weights.relevance}*relevance + ${policy.weights.confidence}*confidence) x category multiplier, confidence mode: ${policy.confidenceHandling}`;
+}
+
+function savePolicyForOrg() {
+  const org = els.policyOrg?.value || 'default';
+  const before = computeLifecycleMetrics();
+  const policy = policyFromForm();
+  state.policies[org] = policy;
+  state.policyHistory.push({
+    changedAt: Date.now(),
+    org,
+    policyVersion: policy.version,
+    before,
+  });
+  persistPolicies();
+  render();
+  showToast(`Saved ${org} scoring policy (${policy.version})`);
+}
+
+function resetPolicyForOrg() {
+  const org = els.policyOrg?.value || 'default';
+  state.policies[org] = normalizePolicy(SCORING_DEFAULT_POLICY_V1);
+  persistPolicies();
+  fillPolicyForm(org);
+  render();
+  showToast(`Reset ${org} scoring policy to default v1`);
+}
+
+function renderOrgOptions() {
+  const targets = [els.organization, els.policyOrg].filter(Boolean);
+  targets.forEach((select) => {
+    const previous = select.value;
+    select.innerHTML = ORG_OPTIONS.map((org) => `<option value="${org.value}">${org.label}</option>`).join('');
+    select.value = ORG_OPTIONS.some((org) => org.value === previous) ? previous : 'default';
+  });
 }
 
 function setFieldInvalid(field, invalid) {
@@ -286,16 +530,62 @@ function sortedFilteredItems() {
     .sort((a, b) => score(b) - score(a) || b.createdAt - a.createdAt || a.title.localeCompare(b.title));
 }
 
+function computeLifecycleMetrics(items = state.items) {
+  const triageDurations = items.filter((x) => x.triagedAt).map((x) => x.triagedAt - x.createdAt).filter((x) => x > 0);
+  const actionDurations = items.filter((x) => x.actedAt).map((x) => x.actedAt - x.createdAt).filter((x) => x > 0);
+  const highScoreItems = items.filter((x) => score(x) >= 13);
+  const highScoreCompleted = highScoreItems.filter((x) => x.completedAt).length;
+  const missedCount = items.filter((x) => x.missedAt).length;
+
+  const avgTriageMs = triageDurations.length ? triageDurations.reduce((a, b) => a + b, 0) / triageDurations.length : null;
+  const avgActionMs = actionDurations.length ? actionDurations.reduce((a, b) => a + b, 0) / actionDurations.length : null;
+
+  return {
+    avgTriageMs,
+    avgActionMs,
+    highScoreCompletionRate: highScoreItems.length ? (highScoreCompleted / highScoreItems.length) : 0,
+    missedOpportunityRate: items.length ? (missedCount / items.length) : 0,
+    highScoreItems: highScoreItems.length,
+  };
+}
+
+function formatDuration(ms) {
+  if (!ms || ms <= 0) return 'n/a';
+  const mins = Math.round(ms / 60000);
+  if (mins < 60) return `${mins}m`;
+  const hours = (mins / 60).toFixed(1);
+  return `${hours}h`;
+}
+
+function renderPolicyComparison(metrics) {
+  if (!els.policyChangeSummary) return;
+  const latest = state.policyHistory[state.policyHistory.length - 1];
+  if (!latest) {
+    els.policyChangeSummary.textContent = 'No policy changes recorded yet in this browser.';
+    return;
+  }
+  const before = latest.before;
+  const after = metrics;
+  els.policyChangeSummary.textContent = `Latest ${latest.org} policy update (${latest.policyVersion}) • Triage ${formatDuration(before.avgTriageMs)} → ${formatDuration(after.avgTriageMs)} • Action ${formatDuration(before.avgActionMs)} → ${formatDuration(after.avgActionMs)} • High-score completion ${(before.highScoreCompletionRate * 100).toFixed(0)}% → ${(after.highScoreCompletionRate * 100).toFixed(0)}% • Missed ${(before.missedOpportunityRate * 100).toFixed(0)}% → ${(after.missedOpportunityRate * 100).toFixed(0)}%`;
+}
+
 function renderStats() {
   const total = state.items.length;
   const highUrgency = state.items.filter((x) => x.urgency >= 4).length;
   const avgScore = total ? (state.items.reduce((acc, x) => acc + score(x), 0) / total).toFixed(1) : '0.0';
   const assigned = state.items.filter((x) => x.owner && x.owner !== 'Unassigned').length;
+  const metrics = computeLifecycleMetrics();
 
   if (els.statTotal) els.statTotal.textContent = String(total);
   if (els.statHigh) els.statHigh.textContent = String(highUrgency);
   if (els.statAvg) els.statAvg.textContent = String(avgScore);
   if (els.statAssigned) els.statAssigned.textContent = String(assigned);
+
+  if (els.metricTriage) els.metricTriage.textContent = formatDuration(metrics.avgTriageMs);
+  if (els.metricAction) els.metricAction.textContent = formatDuration(metrics.avgActionMs);
+  if (els.metricHighCompletion) els.metricHighCompletion.textContent = `${(metrics.highScoreCompletionRate * 100).toFixed(0)}%`;
+  if (els.metricMissed) els.metricMissed.textContent = `${(metrics.missedOpportunityRate * 100).toFixed(0)}%`;
+  renderPolicyComparison(metrics);
 }
 
 function scoreBand(item) {
@@ -325,16 +615,59 @@ function render() {
     itemEl.dataset.itemId = item.id;
     itemEl.tabIndex = 0;
 
+    const recommendation = recommendationFor(item);
+
     node.querySelector('.item-title').textContent = item.title;
-    node.querySelector('.item-meta').textContent = `${item.category} • ${item.source} • owner ${item.owner}`;
+    node.querySelector('.item-meta').textContent = `${item.category} • ${item.source} • owner ${item.owner} • org ${item.organization}`;
     node.querySelector('.item-metrics').textContent = `Urgency ${item.urgency} • Relevance ${item.relevance} • Confidence ${item.confidence} • Formula ${scoreBreakdown(item)} • ${formatRelativeTime(item.createdAt)}`;
-    node.querySelector('.item-action').textContent = `Next action: ${recommendationFor(item)}`;
+    node.querySelector('.item-action').textContent = `Next action: ${recommendation.text}`;
+
+    const statusBits = [];
+    if (item.triagedAt) statusBits.push(`Triaged ${formatRelativeTime(item.triagedAt)}`);
+    if (item.actedAt) statusBits.push(`Actioned ${formatRelativeTime(item.actedAt)}`);
+    if (item.completedAt) statusBits.push(`Completed ${formatRelativeTime(item.completedAt)}`);
+    if (item.missedAt) statusBits.push(`Missed ${formatRelativeTime(item.missedAt)}`);
+    if (item.recommendationFeedback) statusBits.push(`Recommendation feedback: ${item.recommendationFeedback}`);
+    node.querySelector('.item-status').textContent = statusBits.length ? statusBits.join(' • ') : 'Lifecycle not started.';
 
     const scoreEl = node.querySelector('.score');
     scoreEl.textContent = `Score ${score(item)}`;
     scoreEl.title = `Score formula: ${scoreBreakdown(item)}`;
     scoreEl.setAttribute('aria-label', `Score ${score(item)}. Formula ${scoreBreakdown(item)}`);
     scoreEl.classList.add(`score-${scoreBand(item)}`);
+
+    node.querySelector('.triage').addEventListener('click', () => {
+      item.triagedAt = item.triagedAt || Date.now();
+      persist();
+      render();
+      showToast('Signal marked triaged');
+    });
+    node.querySelector('.act').addEventListener('click', () => {
+      item.triagedAt = item.triagedAt || Date.now();
+      item.actedAt = item.actedAt || Date.now();
+      persist();
+      render();
+      showToast('Signal marked actioned');
+    });
+    node.querySelector('.complete').addEventListener('click', () => {
+      item.triagedAt = item.triagedAt || Date.now();
+      item.actedAt = item.actedAt || Date.now();
+      item.completedAt = item.completedAt || Date.now();
+      item.missedAt = null;
+      persist();
+      render();
+      showToast('Signal marked completed');
+    });
+    node.querySelector('.miss').addEventListener('click', () => {
+      item.missedAt = Date.now();
+      item.completedAt = null;
+      persist();
+      render();
+      showToast('Signal marked missed opportunity');
+    });
+
+    node.querySelector('.feedback-useful').addEventListener('click', () => registerRecommendationFeedback(item, 'useful'));
+    node.querySelector('.feedback-not-useful').addEventListener('click', () => registerRecommendationFeedback(item, 'not-useful'));
 
     const deleteBtn = node.querySelector('.delete');
     deleteBtn.title = `Delete signal: ${item.title}`;
@@ -379,6 +712,7 @@ function applyTemplatePreset() {
   els.relevance.value = String(preset.relevance);
   els.confidence.value = String(preset.confidence);
   els.owner.value = preset.owner;
+  els.organization.value = key;
   showToast('Template applied');
 }
 
@@ -394,7 +728,7 @@ function clearFilters({ silent = false } = {}) {
 }
 
 function loadDemoScenario({ silent = false } = {}) {
-  state.items = DEMO_SCENARIO_ITEMS.map((item, idx) => ({
+  state.items = DEMO_SCENARIO_ITEMS.map((item, idx) => normalizeItem({
     ...item,
     id: `demo-${idx + 1}`,
   }));
@@ -561,7 +895,13 @@ function addItem(evt) {
     relevance: clampInt(els.relevance.value, 1, 5, 3),
     confidence: clampInt(els.confidence.value, 1, 5, 3),
     owner: cleanText(els.owner.value) || 'Unassigned',
+    organization: els.organization.value || 'default',
     createdAt: Date.now(),
+    triagedAt: null,
+    actedAt: null,
+    completedAt: null,
+    missedAt: null,
+    recommendationFeedback: null,
   };
 
   clearFormError();
@@ -590,7 +930,7 @@ function addItem(evt) {
     return;
   }
 
-  state.items.push(item);
+  state.items.push(normalizeItem(item));
   persist();
   els.form.reset();
   clearFormError();
@@ -602,13 +942,49 @@ function addItem(evt) {
   showToast('Signal added');
 }
 
+function recommendationKeyFor(item) {
+  if (item.urgency >= 5) return 'urgent';
+  if (RECOMMENDATION_LIBRARY[item.category]) return item.category;
+  return 'default';
+}
+
+function feedbackScore(key, idx) {
+  const bucket = state.recommendationFeedback[key]?.[idx];
+  if (!bucket) return 0;
+  return (bucket.useful || 0) - (bucket.notUseful || 0);
+}
+
 function recommendationFor(item) {
-  if (item.urgency >= 5) return 'Act now: assign owner and post to core channel in the next 30 minutes.';
-  if (item.category === 'Funding') return 'Check eligibility and draft application notes before end of day.';
-  if (item.category === 'Hiring') return 'Share with hiring lead and capture candidate/referral deadline.';
-  if (item.category === 'Event') return 'Confirm attendance window and who will represent the community.';
-  if (item.category === 'Opportunity') return 'Validate fit and send outreach while signal is still fresh.';
-  return 'Log next step and owner for tomorrow morning standup.';
+  const key = recommendationKeyFor(item);
+  const options = RECOMMENDATION_LIBRARY[key] || RECOMMENDATION_LIBRARY.default;
+  let bestIdx = 0;
+  let bestScore = Number.NEGATIVE_INFINITY;
+  options.forEach((_, idx) => {
+    const candidate = feedbackScore(key, idx);
+    if (candidate > bestScore) {
+      bestScore = candidate;
+      bestIdx = idx;
+    }
+  });
+  return { text: options[bestIdx], key, variant: bestIdx };
+}
+
+function registerRecommendationFeedback(item, sentiment) {
+  const rec = recommendationFor(item);
+  if (!state.recommendationFeedback[rec.key]) state.recommendationFeedback[rec.key] = {};
+  if (!state.recommendationFeedback[rec.key][rec.variant]) state.recommendationFeedback[rec.key][rec.variant] = { useful: 0, notUseful: 0 };
+
+  if (sentiment === 'useful') {
+    state.recommendationFeedback[rec.key][rec.variant].useful += 1;
+  } else {
+    state.recommendationFeedback[rec.key][rec.variant].notUseful += 1;
+  }
+
+  item.recommendationFeedback = sentiment;
+  safeSetLocal(RECOMMENDATION_FEEDBACK_KEY, JSON.stringify(state.recommendationFeedback));
+  persist();
+  render();
+  showToast(`Recommendation feedback captured: ${sentiment}`);
 }
 
 function buildBriefLines(items, date = new Date().toISOString().slice(0, 10)) {
@@ -622,7 +998,7 @@ function buildBriefLines(items, date = new Date().toISOString().slice(0, 10)) {
     ...topItems.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Owner: ${item.owner}\n   - Score: ${score(item)} (Urgency ${item.urgency} • Relevance ${item.relevance} • Confidence ${item.confidence})`),
     '',
     '## Recommended Actions',
-    ...topItems.map((item, idx) => `${idx + 1}. ${recommendationFor(item)}`),
+    ...topItems.map((item, idx) => `${idx + 1}. ${recommendationFor(item).text}`),
   ];
 
   return { date, lines };
@@ -634,7 +1010,7 @@ function buildDigestLines(items, date = new Date().toISOString().slice(0, 10)) {
     '',
     'Scoring formula: urgency * 2 + relevance + confidence',
     '',
-    ...items.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Owner: ${item.owner}\n   - Urgency: ${item.urgency} | Relevance: ${item.relevance} | Confidence: ${item.confidence} | Score: ${score(item)}\n   - Recommended action: ${recommendationFor(item)}`),
+    ...items.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Owner: ${item.owner}\n   - Urgency: ${item.urgency} | Relevance: ${item.relevance} | Confidence: ${item.confidence} | Score: ${score(item)}\n   - Recommended action: ${recommendationFor(item).text}`),
   ];
 }
 
@@ -652,7 +1028,7 @@ function buildCanonicalBriefLines(items) {
     ...items.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Owner: ${item.owner}\n   - Score: ${score(item)} (Urgency ${item.urgency} • Relevance ${item.relevance} • Confidence ${item.confidence})`),
     '',
     '## Recommended Actions',
-    ...items.map((item, idx) => `${idx + 1}. ${recommendationFor(item)}`),
+    ...items.map((item, idx) => `${idx + 1}. ${recommendationFor(item).text}`),
     '',
     '---',
     'Canonical deterministic artifact from fixed demo dataset (`DEMO_SCENARIO_ITEMS`).',
@@ -666,7 +1042,7 @@ function buildCanonicalDigestLines(items) {
     '',
     'Scoring formula: urgency * 2 + relevance + confidence',
     '',
-    ...items.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Owner: ${item.owner}\n   - Urgency: ${item.urgency} | Relevance: ${item.relevance} | Confidence: ${item.confidence} | Score: ${score(item)}\n   - Recommended action: ${recommendationFor(item)}`),
+    ...items.map((item, idx) => `${idx + 1}. **${item.title}** (${item.category})\n   - Source: ${item.source}\n   - Owner: ${item.owner}\n   - Urgency: ${item.urgency} | Relevance: ${item.relevance} | Confidence: ${item.confidence} | Score: ${score(item)}\n   - Recommended action: ${recommendationFor(item).text}`),
     '',
     '---',
     'Canonical deterministic artifact from fixed demo dataset (`DEMO_SCENARIO_ITEMS`).',
@@ -801,7 +1177,7 @@ function buildJudgeSnapshotMarkdown(items, health, now = new Date()) {
     '## Top 3 Signals',
     ...topThree.map(
       (item, index) =>
-        `${index + 1}. **${item.title}** (${item.category})\n   - Score: ${score(item)}\n   - Source: ${item.source}\n   - Owner: ${item.owner}\n   - Next action: ${recommendationFor(item)}`,
+        `${index + 1}. **${item.title}** (${item.category})\n   - Score: ${score(item)}\n   - Source: ${item.source}\n   - Owner: ${item.owner}\n   - Next action: ${recommendationFor(item).text}`,
     ),
     '',
     '## Determinism Note',
@@ -969,8 +1345,32 @@ els.finalBundleBtn?.addEventListener('click', () => {
   generateFinalEvidenceBundle();
 });
 els.submissionToggleBtn?.addEventListener('click', toggleSubmissionMode);
+els.policyOrg?.addEventListener('change', (e) => {
+  state.activeOrg = e.target.value;
+  fillPolicyForm(state.activeOrg);
+});
+els.savePolicyBtn?.addEventListener('click', savePolicyForOrg);
+els.resetPolicyBtn?.addEventListener('click', resetPolicyForOrg);
+[
+  els.policyVersion,
+  els.policyUrgencyWeight,
+  els.policyRelevanceWeight,
+  els.policyConfidenceWeight,
+  els.policyConfidenceMode,
+  els.policyMultFunding,
+  els.policyMultHiring,
+  els.policyMultEvent,
+  els.policyMultTool,
+  els.policyMultOpportunity,
+].filter(Boolean).forEach((input) => {
+  input.addEventListener('input', () => updatePolicyPreview());
+});
 
+renderOrgOptions();
 loadFormDraft();
+state.activeOrg = els.policyOrg?.value || 'default';
+fillPolicyForm(state.activeOrg);
 setSubmissionMode(false);
 persist();
+persistPolicies();
 render();
