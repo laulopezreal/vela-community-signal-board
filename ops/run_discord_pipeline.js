@@ -49,7 +49,7 @@ function buildDecisions(ranked, now = deriveDecisionBaseTime(ranked)) {
 }
 
 let payload;
-try { payload = JSON.parse(fs.readFileSync(inputPath, 'utf8')); } catch (err) { console.error(`INGEST_FAIL reason=invalid_json input=${path.relative(root, inputPath)} message=${err.message}`); process.exit(1); }
+try { payload = JSON.parse(fs.readFileSync(inputPath, 'utf8')); } catch (err) { payload = null; console.warn(`INGEST_WARN reason=read_fail input=${path.relative(root, inputPath)} message=${err.message}`); }
 const raw = parseExport(payload, 'discord');
 const seenExternal = new Set();
 const normalized = [];
