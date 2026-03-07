@@ -95,7 +95,7 @@ Current style upgrades in this loop:
 
 
 ## Contribution workflow
-- Assumption (from the request to target `de v`): all pull requests must target the `dev` branch.
+- All pull requests must target the `dev` branch.
 - CI enforces this via `.github/workflows/pr-base-dev.yml`; PRs to other base branches will fail the check.
 
 ## 30-second opening narrative
