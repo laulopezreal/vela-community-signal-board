@@ -1,0 +1,22 @@
+[
+  {
+    "signalId": "sig_8743a7b3a921",
+    "connector": "slack",
+    "externalId": "slack:1710000001.0001",
+    "threadId": "sl-thread-1",
+    "source": "Slack #product",
+    "title": "Roadmap integration blocked by outage risk for release",
+    "content": "Roadmap integration blocked by outage risk for release",
+    "createdAt": "2026-03-01T09:15:00.000Z",
+    "ownerHint": "Product lead",
+    "primaryDimension": "Product",
+    "revenue": 2,
+    "product": 4,
+    "risk": 3,
+    "leverage": 2,
+    "weighted": 2.75,
+    "weighted100": 55,
+    "dedupeKey": "blocked integration outage release risk roadmap",
+    "idempotencyKey": "a93b5180248384770a9c84912a410c828a202d2eb2c65e45709a3458ef0b7623"
+  }
+]

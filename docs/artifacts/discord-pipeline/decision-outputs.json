@@ -1,77 +1,47 @@
 [
   {
-    "decisionId": "dec_sig_ff60f7869b6d",
-    "signalId": "sig_ff60f7869b6d",
+    "decisionId": "dec_sig_aa52670552c1",
+    "signalId": "sig_aa52670552c1",
     "owner": "Growth lead",
-    "action": "Send outreach and secure decision call",
-    "deadline": "2026-03-02T04:42:07.072Z",
-    "expectedMetric": "qualified opportunities/week: up",
-    "weightedScore": 2.95,
-    "rubric": {
-      "revenue": 4,
-      "product": 2,
-      "risk": 3,
-      "leverage": 2
-    }
+    "action": "Triage in standup and monitor for escalation",
+    "deadline": "2026-03-07T06:39:56.119Z",
+    "expectedMetric": "triage latency: down",
+    "weightedScore": 2.95
   },
   {
-    "decisionId": "dec_sig_ee5cf4b61fd0",
-    "signalId": "sig_ee5cf4b61fd0",
+    "decisionId": "dec_sig_26d8869b7c5a",
+    "signalId": "sig_26d8869b7c5a",
     "owner": "Growth lead",
-    "action": "Send outreach and secure decision call",
-    "deadline": "2026-03-02T06:42:07.072Z",
-    "expectedMetric": "qualified opportunities/week: up",
-    "weightedScore": 2.85,
-    "rubric": {
-      "revenue": 4,
-      "product": 2,
-      "risk": 2,
-      "leverage": 3
-    }
+    "action": "Triage in standup and monitor for escalation",
+    "deadline": "2026-03-07T08:39:56.119Z",
+    "expectedMetric": "triage latency: down",
+    "weightedScore": 2.85
   },
   {
-    "decisionId": "dec_sig_b8e5eeda3ef9",
-    "signalId": "sig_b8e5eeda3ef9",
+    "decisionId": "dec_sig_23433779b316",
+    "signalId": "sig_23433779b316",
     "owner": "Product lead",
-    "action": "Create implementation ticket with acceptance criteria",
-    "deadline": "2026-03-02T08:42:07.072Z",
-    "expectedMetric": "decision-to-delivery lead time: down",
-    "weightedScore": 2.75,
-    "rubric": {
-      "revenue": 2,
-      "product": 4,
-      "risk": 3,
-      "leverage": 2
-    }
+    "action": "Triage in standup and monitor for escalation",
+    "deadline": "2026-03-07T10:39:56.119Z",
+    "expectedMetric": "triage latency: down",
+    "weightedScore": 2.75
   },
   {
-    "decisionId": "dec_sig_ec71bd3bc93a",
-    "signalId": "sig_ec71bd3bc93a",
+    "decisionId": "dec_sig_4f5d764bcb4a",
+    "signalId": "sig_4f5d764bcb4a",
     "owner": "Product lead",
-    "action": "Create implementation ticket with acceptance criteria",
-    "deadline": "2026-03-02T10:42:07.072Z",
-    "expectedMetric": "decision-to-delivery lead time: down",
-    "weightedScore": 2.75,
-    "rubric": {
-      "revenue": 2,
-      "product": 4,
-      "risk": 3,
-      "leverage": 2
-    }
+    "action": "Triage in standup and monitor for escalation",
+    "deadline": "2026-03-07T12:39:56.119Z",
+    "expectedMetric": "triage latency: down",
+    "weightedScore": 2.75
   },
   {
-    "decisionId": "dec_sig_08cee6312c29",
-    "signalId": "sig_08cee6312c29",
+    "decisionId": "dec_sig_002e26f8be93",
+    "signalId": "sig_002e26f8be93",
     "owner": "Community lead",
-    "action": "Turn into repeatable SOP and broadcast to operators",
-    "deadline": "2026-03-02T12:42:07.072Z",
-    "expectedMetric": "repeatable decisions reused/week: up",
-    "weightedScore": 2.2,
-    "rubric": {
-      "revenue": 2,
-      "product": 2,
-      "risk": 1,
-      "leverage": 5
-    }
+    "action": "Triage in standup and monitor for escalation",
+    "deadline": "2026-03-07T14:39:56.119Z",
+    "expectedMetric": "triage latency: down",
+    "weightedScore": 2.2
   }
 ]

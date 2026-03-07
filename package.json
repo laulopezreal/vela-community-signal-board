@@ -1,0 +1,9 @@
+{
+  "name": "vela-community-signal-board",
+  "private": true,
+  "scripts": {
+    "connectors:run": "node ops/run_connector_jobs.js",
+    "connectors:fixtures": "./ops/check_connector_fixtures.sh",
+    "discord:pipeline": "node ops/run_discord_pipeline.js"
+  }
+}
