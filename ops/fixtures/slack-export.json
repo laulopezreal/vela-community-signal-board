@@ -1,0 +1,17 @@
+{
+  "channels": [
+    {
+      "name": "product",
+      "messages": [
+        {
+          "ts": "1710000001.0001",
+          "text": "Roadmap integration blocked by outage risk for release",
+          "content": "Roadmap integration blocked by outage risk for release",
+          "timestamp": "2026-03-01T09:15:00Z",
+          "replyCount": 3,
+          "threadId": "sl-thread-1"
+        }
+      ]
+    }
+  ]
+}

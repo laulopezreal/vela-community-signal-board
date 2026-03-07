@@ -1,6 +1,7 @@
 [
   {
-    "signalId": "sig_ff60f7869b6d",
+    "signalId": "sig_aa52670552c1",
+    "connector": "discord",
     "externalId": "discord:81022",
     "threadId": "t-100",
     "source": "Discord #grants",
@@ -16,10 +17,11 @@
     "weighted": 2.95,
     "weighted100": 59,
     "dedupeKey": "asked budget deck otherwise pause risk sponsor tomorrow updated",
-    "idempotencyKey": "4818624a258a56941ee7b7cfb82b666817bf9f19dc9a329830224586de954651"
+    "idempotencyKey": "941df83250fd44ace473c6b08b05b45b3e6d09433fdd2a30cd893b184079bb2b"
   },
   {
-    "signalId": "sig_ee5cf4b61fd0",
+    "signalId": "sig_26d8869b7c5a",
+    "connector": "discord",
     "externalId": "discord:81021",
     "threadId": "t-100",
     "source": "Discord #grants",
@@ -35,10 +37,11 @@
     "weighted": 2.85,
     "weighted100": 57,
     "dedupeKey": "30 call closes community grant mins need next owner tonight",
-    "idempotencyKey": "a951b73ac550bbdc9f5a8cdec153d76f7e5804fc83c5fa5f601c840bce2c00c6"
+    "idempotencyKey": "c07b9a5cea6ac097542422e727cb78fe6f06a68464170ef811380f034283ccea"
   },
   {
-    "signalId": "sig_b8e5eeda3ef9",
+    "signalId": "sig_23433779b316",
+    "connector": "discord",
     "externalId": "discord:81112",
     "threadId": "t-200",
     "source": "Discord #product",
@@ -54,10 +57,11 @@
     "weighted": 2.75,
     "weighted100": 55,
     "dedupeKey": "agent blocked bug integration missing parser schema webhook workflow",
-    "idempotencyKey": "9cc50e00462f613ad5749f87f4b7483fb122530b0189ee0d6dd691c8387f1a1f"
+    "idempotencyKey": "d5dbdcbcae34d395f4d620b705c69b074863b63551be816ae757a94fc6886276"
   },
   {
-    "signalId": "sig_ec71bd3bc93a",
+    "signalId": "sig_4f5d764bcb4a",
+    "connector": "discord",
     "externalId": "discord:81111",
     "threadId": "t-200",
     "source": "Discord #product",
@@ -73,10 +77,11 @@
     "weighted": 2.75,
     "weighted100": 55,
     "dedupeKey": "agent blocked bug integration missing parser schema webhook workflow",
-    "idempotencyKey": "8a8f0a4b2a7952473febc606025651cd794c2c565d93471eac6045a0b9d897bd"
+    "idempotencyKey": "202d4934b6175bc4f67c7143c47563f99d3f0d6fb8ad00a35c4b1c9f496d8080"
   },
   {
-    "signalId": "sig_08cee6312c29",
+    "signalId": "sig_002e26f8be93",
+    "connector": "discord",
     "externalId": "discord:81113",
     "threadId": "t-201",
     "source": "Discord #product",
@@ -92,6 +97,6 @@
     "weighted": 2.2,
     "weighted100": 44,
     "dedupeKey": "automation built decision logs ops playbook scale should template weekly",
-    "idempotencyKey": "d3d1d36d082b05b302379019d39ca2e5168c5dfd5f86a02ec6db94658c8d20f0"
+    "idempotencyKey": "6aac8f06bcd26c210f70443282d2abaa021affc0b274c7835f348e5b751b18b8"
   }
 ]
