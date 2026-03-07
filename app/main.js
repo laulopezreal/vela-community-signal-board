@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'community-signal-board-v1';
 const FORM_DRAFT_KEY = 'community-signal-board-form-draft-v1';
+const BACKEND_TOGGLE_KEY = 'community-signal-board-backend-toggle-v1';
 
 const TEMPLATE_PRESETS = {
   startup: {
@@ -113,6 +114,8 @@ const state = {
   filterUrgency: 0,
   search: '',
   submissionMode: false,
+  backendEnabled: safeGetLocal(BACKEND_TOGGLE_KEY) === 'on',
+  backendEventSource: null,
 };
 
 const els = {
@@ -145,6 +148,8 @@ const els = {
   demoMacroBtn: document.getElementById('run-demo-reset-health'),
   finalBundleBtn: document.getElementById('generate-final-evidence-bundle'),
   submissionToggleBtn: document.getElementById('toggle-submission-mode'),
+  backendToggleBtn: document.getElementById('toggle-backend-board'),
+  backendStatusCopy: document.getElementById('backend-status-copy'),
   submissionSpotlight: document.getElementById('submission-spotlight'),
   healthStatus: document.getElementById('health-status'),
   tpl: document.getElementById('item-template'),
@@ -454,6 +459,84 @@ async function runJudgeFastPath() {
     showToast('Judge fast path complete • Demo reset + final evidence bundle ready');
   } finally {
     els.judgeFastPathBtn.disabled = false;
+  }
+}
+
+
+function backendApiBase() {
+  const custom = globalThis.localStorage?.getItem('community-signal-board-api-base');
+  return custom || 'http://localhost:8791';
+}
+
+function setBackendLabel(text) {
+  if (els.backendStatusCopy) els.backendStatusCopy.textContent = text;
+}
+
+async function pullBoardFromBackend() {
+  const res = await fetch(`${backendApiBase()}/v1/live/board`);
+  if (!res.ok) throw new Error(`backend_board_http_${res.status}`);
+  const payload = await res.json();
+  const ranked = Array.isArray(payload.rankedSignals) ? payload.rankedSignals : [];
+  state.items = ranked.map((signal) => ({
+    id: signal.signalId,
+    title: signal.title || signal.content || signal.signalId,
+    source: signal.source || 'Discord',
+    category: 'Opportunity',
+    urgency: clampInt(signal.weighted || 3, 1, 5, 3),
+    relevance: clampInt(signal.weighted || 3, 1, 5, 3),
+    confidence: 3,
+    owner: signal.owner || 'Unassigned',
+    createdAt: Date.parse(signal.createdAt || new Date().toISOString()),
+  }));
+  render();
+}
+
+function connectBoardStream() {
+  if (!state.backendEnabled) return;
+  if (state.backendEventSource) state.backendEventSource.close();
+  const es = new EventSource(`${backendApiBase()}/v1/live/board/stream`);
+  state.backendEventSource = es;
+  es.addEventListener('board.update', async () => {
+    try {
+      await pullBoardFromBackend();
+      setBackendLabel('Live backend stream');
+    } catch {
+      setBackendLabel('Backend stream active, pull failed');
+    }
+  });
+  es.onerror = () => {
+    setBackendLabel('Backend stream disconnected, local fallback');
+  };
+}
+
+async function setBackendMode(enabled) {
+  state.backendEnabled = !!enabled;
+  if (els.backendToggleBtn) {
+    els.backendToggleBtn.textContent = `Backend Board: ${state.backendEnabled ? 'On' : 'Off'}`;
+    els.backendToggleBtn.setAttribute('aria-pressed', state.backendEnabled ? 'true' : 'false');
+  }
+
+  safeSetLocal(BACKEND_TOGGLE_KEY, state.backendEnabled ? 'on' : 'off');
+
+  if (!state.backendEnabled) {
+    if (state.backendEventSource) state.backendEventSource.close();
+    state.backendEventSource = null;
+    setBackendLabel('Local fallback');
+    return;
+  }
+
+  try {
+    await pullBoardFromBackend();
+    connectBoardStream();
+    setBackendLabel('Live backend stream');
+  } catch {
+    state.backendEnabled = false;
+    safeSetLocal(BACKEND_TOGGLE_KEY, 'off');
+    if (els.backendToggleBtn) {
+      els.backendToggleBtn.textContent = 'Backend Board: Off';
+      els.backendToggleBtn.setAttribute('aria-pressed', 'false');
+    }
+    setBackendLabel('Backend unavailable, local fallback');
   }
 }
 
@@ -969,8 +1052,10 @@ els.finalBundleBtn?.addEventListener('click', () => {
   generateFinalEvidenceBundle();
 });
 els.submissionToggleBtn?.addEventListener('click', toggleSubmissionMode);
+els.backendToggleBtn?.addEventListener('click', () => { setBackendMode(!state.backendEnabled); });
 
 loadFormDraft();
 setSubmissionMode(false);
+setBackendMode(state.backendEnabled);
 persist();
 render();

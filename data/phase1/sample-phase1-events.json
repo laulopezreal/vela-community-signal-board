@@ -1,0 +1,31 @@
+{
+  "events": [
+    {
+      "provider": "discord",
+      "event_type": "message",
+      "id": "evt-100",
+      "threadId": "thread-100",
+      "channel": "Discord #operators",
+      "content": "Urgent incident: client deal blocked, needs automation triage",
+      "createdAt": "2026-03-02T02:00:00Z"
+    },
+    {
+      "provider": "discord",
+      "event_type": "message",
+      "id": "evt-100",
+      "threadId": "thread-100",
+      "channel": "Discord #operators",
+      "content": "Urgent incident: client deal blocked, needs automation triage",
+      "createdAt": "2026-03-02T02:00:00Z"
+    },
+    {
+      "provider": "discord",
+      "event_type": "message",
+      "id": "evt-200",
+      "threadId": "thread-200",
+      "channel": "Discord #bugs",
+      "content": "FORCE_FAIL bug report cannot be normalized",
+      "createdAt": "2026-03-02T02:03:00Z"
+    }
+  ]
+}
