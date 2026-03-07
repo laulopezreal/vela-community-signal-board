@@ -1,0 +1,13 @@
+{
+  "runId": "run_e653f9abaf6e",
+  "connector": "discord",
+  "status": "success_with_errors",
+  "startedAt": "2026-03-07T04:54:06.487Z",
+  "finishedAt": "2026-03-07T04:54:06.506Z",
+  "rowsProcessed": 8,
+  "rowsImported": 5,
+  "rowsPersisted": 5,
+  "duplicatesSkipped": 1,
+  "errorCount": 2,
+  "idempotencyKey": "discord:sample-discord-export.json"
+}

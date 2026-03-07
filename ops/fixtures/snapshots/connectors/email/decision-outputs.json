@@ -1,0 +1,32 @@
+[
+  {
+    "decisionId": "dec_sig_d7ad90e135ed",
+    "signalId": "sig_d7ad90e135ed",
+    "owner": "Growth lead",
+    "action": "Open mitigation thread and assign fallback owner",
+    "deadline": "2026-02-28T14:00:00.000Z",
+    "expectedMetric": "missed-critical-risk alerts: down",
+    "weightedScore": 3.2,
+    "rubric": {
+      "revenue": 4,
+      "product": 2,
+      "risk": 4,
+      "leverage": 2
+    }
+  },
+  {
+    "decisionId": "dec_sig_1b7a575ea516",
+    "signalId": "sig_1b7a575ea516",
+    "owner": "Product lead",
+    "action": "Create implementation ticket with acceptance criteria",
+    "deadline": "2026-02-28T16:00:00.000Z",
+    "expectedMetric": "decision-to-delivery lead time: down",
+    "weightedScore": 2.75,
+    "rubric": {
+      "revenue": 2,
+      "product": 4,
+      "risk": 3,
+      "leverage": 2
+    }
+  }
+]

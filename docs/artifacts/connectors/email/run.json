@@ -1,0 +1,13 @@
+{
+  "runId": "run_b87d15a44409",
+  "connector": "email",
+  "status": "success",
+  "startedAt": "2026-03-07T04:54:06.509Z",
+  "finishedAt": "2026-03-07T04:54:06.510Z",
+  "rowsProcessed": 2,
+  "rowsImported": 2,
+  "rowsPersisted": 2,
+  "duplicatesSkipped": 0,
+  "errorCount": 0,
+  "idempotencyKey": "email:email-export.json"
+}

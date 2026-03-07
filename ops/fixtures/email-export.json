@@ -1,0 +1,20 @@
+{
+  "emails": [
+    {
+      "messageId": "msg-1001",
+      "threadId": "thr-1001",
+      "mailbox": "partnerships",
+      "subject": "Urgent intro request for AI infra founder",
+      "preview": "Can you confirm a decision call today?",
+      "sentAt": "2026-02-28T10:30:00Z"
+    },
+    {
+      "messageId": "msg-1002",
+      "threadId": "thr-1002",
+      "mailbox": "product",
+      "subject": "Integration blocked",
+      "preview": "Webhook parser schema bug blocks release deadline.",
+      "sentAt": "2026-02-28T09:15:00Z"
+    }
+  ]
+}

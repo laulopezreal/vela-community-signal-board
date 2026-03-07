@@ -1,0 +1,10 @@
+[
+  {
+    "rowId": "bad-1",
+    "reason": "missing_required_fields"
+  },
+  {
+    "rowId": null,
+    "reason": "missing_required_fields"
+  }
+]

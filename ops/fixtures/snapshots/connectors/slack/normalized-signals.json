@@ -1,0 +1,42 @@
+[
+  {
+    "signalId": "sig_7dc361abdd03",
+    "connector": "slack",
+    "externalId": "slack:1772260200",
+    "threadId": "1772260200",
+    "source": "Slack #founders",
+    "title": "Sponsor asked for updated deck by tomorrow otherwise budget pause risk.",
+    "content": "Sponsor asked for updated deck by tomorrow otherwise budget pause risk.",
+    "createdAt": "2026-02-28T06:30:00.000Z",
+    "ownerHint": "Growth lead",
+    "primaryDimension": "Revenue",
+    "revenue": 4,
+    "product": 2,
+    "risk": 3,
+    "leverage": 2,
+    "weighted": 2.95,
+    "weighted100": 59,
+    "dedupeKey": "slack:asked budget deck otherwise pause risk sponsor tomorrow updated",
+    "idempotencyKey": "7d1ce1ba5e367495a766a314f393967ebab27628ee7bc2e56a5b3c8ee9ab4bc8"
+  },
+  {
+    "signalId": "sig_f87d66c1d75b",
+    "connector": "slack",
+    "externalId": "slack:1772260800",
+    "threadId": "1772260800",
+    "source": "Slack #founders",
+    "title": "Built an automation template for weekly ops decision logs to scale onboarding.",
+    "content": "Built an automation template for weekly ops decision logs to scale onboarding.",
+    "createdAt": "2026-02-28T06:40:00.000Z",
+    "ownerHint": "Community lead",
+    "primaryDimension": "Leverage",
+    "revenue": 2,
+    "product": 2,
+    "risk": 1,
+    "leverage": 5,
+    "weighted": 2.2,
+    "weighted100": 44,
+    "dedupeKey": "slack:automation built decision logs onboarding ops scale template weekly",
+    "idempotencyKey": "d4e8d7b7168277221b51cf7c6af7751d8a3642dd6dc854b17f9acc8d4e793099"
+  }
+]

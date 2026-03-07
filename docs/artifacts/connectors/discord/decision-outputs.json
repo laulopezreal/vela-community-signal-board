@@ -1,0 +1,77 @@
+[
+  {
+    "decisionId": "dec_sig_aa52670552c1",
+    "signalId": "sig_aa52670552c1",
+    "owner": "Growth lead",
+    "action": "Send outreach and secure decision call",
+    "deadline": "2026-02-28T14:00:00.000Z",
+    "expectedMetric": "qualified opportunities/week: up",
+    "weightedScore": 2.95,
+    "rubric": {
+      "revenue": 4,
+      "product": 2,
+      "risk": 3,
+      "leverage": 2
+    }
+  },
+  {
+    "decisionId": "dec_sig_26d8869b7c5a",
+    "signalId": "sig_26d8869b7c5a",
+    "owner": "Growth lead",
+    "action": "Send outreach and secure decision call",
+    "deadline": "2026-02-28T16:00:00.000Z",
+    "expectedMetric": "qualified opportunities/week: up",
+    "weightedScore": 2.85,
+    "rubric": {
+      "revenue": 4,
+      "product": 2,
+      "risk": 2,
+      "leverage": 3
+    }
+  },
+  {
+    "decisionId": "dec_sig_23433779b316",
+    "signalId": "sig_23433779b316",
+    "owner": "Product lead",
+    "action": "Create implementation ticket with acceptance criteria",
+    "deadline": "2026-02-28T18:00:00.000Z",
+    "expectedMetric": "decision-to-delivery lead time: down",
+    "weightedScore": 2.75,
+    "rubric": {
+      "revenue": 2,
+      "product": 4,
+      "risk": 3,
+      "leverage": 2
+    }
+  },
+  {
+    "decisionId": "dec_sig_4f5d764bcb4a",
+    "signalId": "sig_4f5d764bcb4a",
+    "owner": "Product lead",
+    "action": "Create implementation ticket with acceptance criteria",
+    "deadline": "2026-02-28T20:00:00.000Z",
+    "expectedMetric": "decision-to-delivery lead time: down",
+    "weightedScore": 2.75,
+    "rubric": {
+      "revenue": 2,
+      "product": 4,
+      "risk": 3,
+      "leverage": 2
+    }
+  },
+  {
+    "decisionId": "dec_sig_002e26f8be93",
+    "signalId": "sig_002e26f8be93",
+    "owner": "Community lead",
+    "action": "Turn into repeatable SOP and broadcast to operators",
+    "deadline": "2026-02-28T22:00:00.000Z",
+    "expectedMetric": "repeatable decisions reused/week: up",
+    "weightedScore": 2.2,
+    "rubric": {
+      "revenue": 2,
+      "product": 2,
+      "risk": 1,
+      "leverage": 5
+    }
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "channel": "Slack #founders",
+  "messages": [
+    {
+      "ts": "1772260200",
+      "text": "Sponsor asked for updated deck by tomorrow otherwise budget pause risk.",
+      "thread_ts": "1772260200",
+      "reactions": [{ "name": "eyes", "count": 3 }]
+    },
+    {
+      "ts": "1772260800",
+      "text": "Built an automation template for weekly ops decision logs to scale onboarding.",
+      "thread_ts": "1772260800",
+      "reactions": [{ "name": "rocket", "count": 7 }]
+    }
+  ]
+}

@@ -44,6 +44,32 @@ node ops/run_local_ingestion.js
 
 This transforms exported external signals into a ranked queue snapshot via the same scoring flow (`urgency * 2 + relevance + confidence`).
 
+
+## Connector jobs + run history (local)
+
+Assumption for this repo: because the app is static/local-first, connector persistence uses a JSON-backed local DB at `server/data/connector-db.json` while also including an SQL migration (`server/db/migrations/001_connector_run_history.sql`) that mirrors the same run-history schema for production DB wiring.
+
+Run all connectors (Discord, Slack, email):
+
+```bash
+node ops/run_connector_jobs.js
+```
+
+This job flow executes: fetch/import payload → normalize → dedupe/idempotency → score → persist signals + connector run history.
+
+Outputs:
+- Connector artifacts: `docs/artifacts/connectors/*`
+- Run history for UI: `app/data/connector-run-history.json`
+- Local DB state: `server/data/connector-db.json`
+
+Deterministic fixture check:
+
+```bash
+node ops/check_connector_fixtures.js
+```
+
+This compares generated connector outputs with fixture snapshots in `ops/fixtures/snapshots/connectors`.
+
 ## Run locally
 No build step required.
 

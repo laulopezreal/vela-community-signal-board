@@ -1,0 +1,13 @@
+{
+  "runId": "run_97314cdb16da",
+  "connector": "slack",
+  "status": "success",
+  "startedAt": "2026-03-07T04:54:06.507Z",
+  "finishedAt": "2026-03-07T04:54:06.508Z",
+  "rowsProcessed": 2,
+  "rowsImported": 2,
+  "rowsPersisted": 2,
+  "duplicatesSkipped": 0,
+  "errorCount": 0,
+  "idempotencyKey": "slack:slack-export.json"
+}

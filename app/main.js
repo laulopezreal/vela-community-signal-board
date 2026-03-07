@@ -153,6 +153,7 @@ const els = {
   statAvg: document.getElementById('stat-avg'),
   statAssigned: document.getElementById('stat-assigned'),
   toast: document.getElementById('toast'),
+  connectorRunList: document.getElementById('connector-run-list'),
 };
 
 function score(item) {
@@ -206,6 +207,37 @@ function formatRelativeTime(ts) {
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
+}
+
+function connectorStatusBadge(status) {
+  if (status === 'success') return '✅ success';
+  if (status === 'success_with_errors') return '⚠️ partial';
+  return '❌ failed';
+}
+
+async function loadConnectorRunHistory() {
+  if (!els.connectorRunList) return;
+  try {
+    const res = await fetch('./data/connector-run-history.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`http_${res.status}`);
+    const payload = await res.json();
+    const runs = Array.isArray(payload?.runs) ? payload.runs.slice(0, 6) : [];
+    if (!runs.length) {
+      els.connectorRunList.innerHTML = '<li class="connector-run-empty">No connector runs yet.</li>';
+      return;
+    }
+
+    els.connectorRunList.innerHTML = runs
+      .map((run) => {
+        const processed = Number(run.rowsProcessed || 0);
+        const imported = Number(run.rowsImported || 0);
+        const relative = formatRelativeTime(Date.parse(run.finishedAt || run.startedAt || Date.now()));
+        return `<li><strong>${run.connector}</strong> · ${connectorStatusBadge(run.status)} · rows ${imported}/${processed} · ${relative}</li>`;
+      })
+      .join('');
+  } catch {
+    els.connectorRunList.innerHTML = '<li class="connector-run-empty">Connector history unavailable (generate via ops/run_connector_jobs.js).</li>';
+  }
 }
 
 function loadFormDraft() {
@@ -347,6 +379,7 @@ function render() {
       state.items = state.items.filter((x) => x.id !== item.id);
       persist();
       render();
+loadConnectorRunHistory();
       showToast(skipConfirm ? 'Signal removed (quick delete)' : 'Signal removed');
     });
     els.list.appendChild(node);
@@ -974,3 +1007,5 @@ loadFormDraft();
 setSubmissionMode(false);
 persist();
 render();
+
+loadConnectorRunHistory();

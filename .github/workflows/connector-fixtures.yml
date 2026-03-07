@@ -1,0 +1,20 @@
+name: Connector fixture checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  connector-fixtures:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run connector jobs
+        run: node ops/run_connector_jobs.js
+      - name: Compare connector outputs with snapshots
+        run: node ops/check_connector_fixtures.js

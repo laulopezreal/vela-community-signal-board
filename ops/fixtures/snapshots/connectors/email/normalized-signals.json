@@ -1,0 +1,42 @@
+[
+  {
+    "signalId": "sig_d7ad90e135ed",
+    "connector": "email",
+    "externalId": "email:msg-1001",
+    "threadId": "thr-1001",
+    "source": "Email partnerships",
+    "title": "Urgent intro request for AI infra founder Can you confirm a decision call today?",
+    "content": "Urgent intro request for AI infra founder Can you confirm a decision call today?",
+    "createdAt": "2026-02-28T10:30:00.000Z",
+    "ownerHint": "Growth lead",
+    "primaryDimension": "Revenue",
+    "revenue": 4,
+    "product": 2,
+    "risk": 4,
+    "leverage": 2,
+    "weighted": 3.2,
+    "weighted100": 64,
+    "dedupeKey": "email:ai call can confirm decision founder infra intro request today",
+    "idempotencyKey": "edf0e626215a4489bbef628d159bace44dadad36e53e99513c034540b3061db5"
+  },
+  {
+    "signalId": "sig_1b7a575ea516",
+    "connector": "email",
+    "externalId": "email:msg-1002",
+    "threadId": "thr-1002",
+    "source": "Email product",
+    "title": "Integration blocked Webhook parser schema bug blocks release deadline.",
+    "content": "Integration blocked Webhook parser schema bug blocks release deadline.",
+    "createdAt": "2026-02-28T09:15:00.000Z",
+    "ownerHint": "Product lead",
+    "primaryDimension": "Product",
+    "revenue": 2,
+    "product": 4,
+    "risk": 3,
+    "leverage": 2,
+    "weighted": 2.75,
+    "weighted100": 55,
+    "dedupeKey": "email:blocked blocks bug deadline integration parser release schema webhook",
+    "idempotencyKey": "8ef0d5a1d6438d87568ce64d82421d19768fb4c8d59eac94f950a3286bef7b85"
+  }
+]

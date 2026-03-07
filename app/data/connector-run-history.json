@@ -1,0 +1,44 @@
+{
+  "generatedAt": "2026-03-07T04:54:06.511Z",
+  "runs": [
+    {
+      "runId": "run_b87d15a44409",
+      "connector": "email",
+      "status": "success",
+      "startedAt": "2026-03-07T04:54:06.509Z",
+      "finishedAt": "2026-03-07T04:54:06.510Z",
+      "rowsProcessed": 2,
+      "rowsImported": 2,
+      "rowsPersisted": 2,
+      "duplicatesSkipped": 0,
+      "errorCount": 0,
+      "idempotencyKey": "email:email-export.json"
+    },
+    {
+      "runId": "run_97314cdb16da",
+      "connector": "slack",
+      "status": "success",
+      "startedAt": "2026-03-07T04:54:06.507Z",
+      "finishedAt": "2026-03-07T04:54:06.508Z",
+      "rowsProcessed": 2,
+      "rowsImported": 2,
+      "rowsPersisted": 2,
+      "duplicatesSkipped": 0,
+      "errorCount": 0,
+      "idempotencyKey": "slack:slack-export.json"
+    },
+    {
+      "runId": "run_e653f9abaf6e",
+      "connector": "discord",
+      "status": "success_with_errors",
+      "startedAt": "2026-03-07T04:54:06.487Z",
+      "finishedAt": "2026-03-07T04:54:06.506Z",
+      "rowsProcessed": 8,
+      "rowsImported": 5,
+      "rowsPersisted": 5,
+      "duplicatesSkipped": 1,
+      "errorCount": 2,
+      "idempotencyKey": "discord:sample-discord-export.json"
+    }
+  ]
+}

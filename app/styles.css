@@ -594,3 +594,28 @@ body.is-submission-mode #toggle-submission-mode {
     bottom: .75rem;
   }
 }
+
+.connector-runs {
+  border: 1px solid var(--border, #d9dee8);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 12px 0;
+  background: #fff;
+}
+
+.connector-runs h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.connector-run-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.connector-run-empty {
+  list-style: disc;
+  color: #556070;
+}
