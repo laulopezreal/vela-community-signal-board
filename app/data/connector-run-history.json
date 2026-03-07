@@ -1,0 +1,35 @@
+[
+  {
+    "runId": "run_demo_discord",
+    "connector": "discord",
+    "status": "success",
+    "rowsProcessed": 2,
+    "rowsInserted": 1,
+    "rowsDeduped": 0,
+    "startedAt": "2026-03-01T08:00:00.000Z",
+    "finishedAt": "2026-03-01T08:00:02.000Z",
+    "errorMessage": null
+  },
+  {
+    "runId": "run_demo_slack",
+    "connector": "slack",
+    "status": "success",
+    "rowsProcessed": 1,
+    "rowsInserted": 1,
+    "rowsDeduped": 0,
+    "startedAt": "2026-03-01T09:00:00.000Z",
+    "finishedAt": "2026-03-01T09:00:01.000Z",
+    "errorMessage": null
+  },
+  {
+    "runId": "run_demo_email",
+    "connector": "email",
+    "status": "fail",
+    "rowsProcessed": 0,
+    "rowsInserted": 0,
+    "rowsDeduped": 0,
+    "startedAt": "2026-03-01T10:00:00.000Z",
+    "finishedAt": "2026-03-01T10:00:01.000Z",
+    "errorMessage": "simulated mailbox export timeout"
+  }
+]

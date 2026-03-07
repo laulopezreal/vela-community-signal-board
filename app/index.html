@@ -132,6 +132,15 @@
           </div>
         </div>
         <p id="health-status" class="health-status" role="status" aria-live="polite">Health not run in this session.</p>
+        <section class="connector-history" aria-label="Connector run history">
+          <h3>Connector Job Status</h3>
+          <p class="section-copy">Latest Discord/Slack/email import runs (success/fail, rows processed, last run).</p>
+          <div id="connector-history-empty" class="health-status">No connector runs yet.</div>
+          <table id="connector-history-table" hidden>
+            <thead><tr><th>Connector</th><th>Status</th><th>Rows processed</th><th>Rows inserted</th><th>Rows deduped</th><th>Last run</th></tr></thead>
+            <tbody id="connector-history-body"></tbody>
+          </table>
+        </section>
         <ul id="signal-list" class="signal-list"></ul>
         <div id="empty" class="empty" role="status" aria-live="polite">
           <p class="empty-title">No signals yet</p>

@@ -1,0 +1,10 @@
+[
+  {
+    "threadId": "fallback-thread-1",
+    "source": "Fallback dataset",
+    "messageCount": 1,
+    "topWeighted": 3.6,
+    "topSignalId": "sig_fdd5ac895f54",
+    "latestAt": "2026-02-28T09:00:00Z"
+  }
+]

@@ -53,6 +53,37 @@ Use the migration script to import historic local export payloads into org-scope
 npm run import:local-export -- ./docs/artifacts/sample-exported-signals.json "Community Signal Board Demo Org" "demo@community.local"
 ```
 
+
+## Connector ingestion pipeline (Discord / Slack / Email)
+
+This repo now includes localized connector jobs that run a deterministic ingestion flow:
+
+1. fetch/import payload (fixture exports under `ops/fixtures/`)
+2. normalize to a shared signal shape
+3. dedupe by `dedupeKey`
+4. score via shared rubric module (`server/lib/scoring/`)
+5. persist with idempotency checks into a local DB file (`server/db/community_signal_board.json`)
+
+Run all connector jobs:
+
+```bash
+node ops/run_connector_jobs.js
+```
+
+Run fixture snapshot check (CI uses the same command):
+
+```bash
+./ops/check_connector_fixtures.sh
+```
+
+### Assumptions made for this implementation
+
+- Because this MVP is local-first and has no dedicated connector backend service yet, the connector "DB" is implemented as a deterministic file-backed store in `server/db/community_signal_board.json` plus a SQL schema reference in `server/db/schema.sql`.
+- Connector run history UI reads a generated static artifact at `app/data/connector-run-history.json`.
+- Existing connector scripts under `ops/` are deterministic fixture drivers, not production ingestion daemons.
+- Connector fixture CI runs on `dev` pushes and pull requests to match the current branch policy.
+- If artifact conflicts happen during rebases/merges, run `./ops/resolve_connector_conflicts.sh` to regenerate deterministic connector + discord fixture outputs before finalizing conflicts.
+
 ## MVP scope
 Included:
 - Signal capture form
