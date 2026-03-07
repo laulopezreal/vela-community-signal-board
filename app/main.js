@@ -136,7 +136,8 @@ function safeLoadContext() {
     const parsed = JSON.parse(safeGetLocal(CONTEXT_KEY) || '{}');
     if (!parsed || typeof parsed !== 'object') return { role: 'admin', orgId: 'vela-main' };
     return {
-      role: ['admin', 'manager', 'contributor', 'viewer'].includes(parsed.role) ? parsed.role : 'admin',
+      role: Object.keys(ROLE_PERMISSIONS).includes(parsed.role) ? parsed.role : 'admin',
+
       orgId: cleanText(String(parsed.orgId || 'vela-main')) || 'vela-main',
     };
   } catch {
