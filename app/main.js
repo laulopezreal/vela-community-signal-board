@@ -1,6 +1,19 @@
+const STORAGE_KEY = 'community-signal-board-v1';
 const FORM_DRAFT_KEY = 'community-signal-board-form-draft-v1';
-const DELIVERY_SETTINGS_KEY = 'community-signal-board-delivery-v1';
-const WORKFLOW_STATUSES = ['new', 'triaged', 'in_progress', 'done', 'dismissed'];
+const AUDIT_LOG_KEY = 'community-signal-board-audit-v1';
+const CONTEXT_KEY = 'community-signal-board-context-v1';
+const BACKUP_PASSPHRASE = 'vela-community-backup-v1';
+const DEFAULT_RETENTION_DAYS = 90;
+
+const ROLE_PERMISSIONS = {
+  admin: ['signal:create', 'signal:delete', 'signal:edit', 'signal:score', 'signal:reassign', 'signal:export', 'ops:backup'],
+  manager: ['signal:create', 'signal:edit', 'signal:score', 'signal:reassign', 'signal:export', 'ops:backup'],
+  contributor: ['signal:create', 'signal:edit', 'signal:score', 'signal:export'],
+  viewer: ['signal:export'],
+};
+
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_ACTIONS = 20;
 
 const TEMPLATE_PRESETS = {
   startup: {
@@ -72,12 +85,6 @@ const DEMO_SCENARIO_ITEMS = [
   },
 ];
 
-const SAMPLE_ONBOARDING_DATASET = [
-  { title: 'Volunteer mentor requests from local university founders', source: 'Campus Discord', category: 'Opportunity', urgency: 4, relevance: 4, confidence: 4, owner: 'Mentor coordinator', createdAt: Date.parse('2026-03-01T09:00:00Z') },
-  { title: 'Municipal innovation grant office hours announced', source: 'City newsletter', category: 'Funding', urgency: 3, relevance: 5, confidence: 4, owner: 'Funding pod', createdAt: Date.parse('2026-03-01T08:20:00Z') },
-  { title: 'Partner OSS project seeks beta users for analytics feature', source: 'GitHub Discussions', category: 'Tool', urgency: 3, relevance: 4, confidence: 5, owner: 'Product loop lead', createdAt: Date.parse('2026-03-01T07:50:00Z') },
-];
-
 const CANONICAL_EVIDENCE_DATE = '2026-02-27';
 const CANONICAL_EXPECTED_MANIFEST = {
   version: 'v1',
@@ -94,65 +101,61 @@ function safeLoadItems() {
     const parsed = JSON.parse(raw || '[]');
     if (!Array.isArray(parsed)) return [];
 
-    return parsed.map(normalizeSignalItem).filter((item) => item.title && item.source);
+    return parsed
+      .map((item) => ({
+        id: typeof item.id === 'string' ? item.id : `legacy-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        title: cleanText(String(item.title || '')),
+        source: cleanText(String(item.source || '')),
+        category: ['Opportunity', 'Funding', 'Event', 'Tool', 'Hiring'].includes(item.category)
+          ? item.category
+          : 'Opportunity',
+        urgency: clampInt(item.urgency, 1, 5, 3),
+        relevance: clampInt(item.relevance, 1, 5, 3),
+        confidence: clampInt(item.confidence, 1, 5, 3),
+        owner: cleanText(String(item.owner || '')) || 'Unassigned',
+        orgId: cleanText(String(item.orgId || 'vela-main')) || 'vela-main',
+        createdAt: Number.isFinite(Number(item.createdAt)) ? Number(item.createdAt) : Date.now(),
+      }))
+      .filter((item) => item.title && item.source);
   } catch {
     return [];
   }
 }
 
-function normalizeSignalItem(item) {
-  const normalized = {
-    id: typeof item?.id === 'string' ? item.id : `legacy-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    title: cleanText(String(item?.title || '')),
-    source: cleanText(String(item?.source || '')),
-    category: ['Opportunity', 'Funding', 'Event', 'Tool', 'Hiring'].includes(item?.category) ? item.category : 'Opportunity',
-    urgency: clampInt(item?.urgency, 1, 5, 3),
-    relevance: clampInt(item?.relevance, 1, 5, 3),
-    confidence: clampInt(item?.confidence, 1, 5, 3),
-    owner: cleanText(String(item?.owner || '')) || 'Unassigned',
-    createdAt: Number.isFinite(Number(item?.createdAt)) ? Number(item?.createdAt) : Date.now(),
-    status: WORKFLOW_STATUSES.includes(item?.status) ? item.status : 'new',
-    due_at: typeof item?.due_at === 'string' ? item.due_at : '',
-    assigned_user_id: cleanText(String(item?.assigned_user_id || '')),
-    action_notes: cleanText(String(item?.action_notes || '')),
-    comments: Array.isArray(item?.comments)
-      ? item.comments
-          .map((comment) => ({
-            id: typeof comment?.id === 'string' ? comment.id : makeId(),
-            text: cleanText(String(comment?.text || '')),
-            author: cleanText(String(comment?.author || '')) || 'Team',
-            createdAt: Number.isFinite(Number(comment?.createdAt)) ? Number(comment.createdAt) : Date.now(),
-          }))
-          .filter((comment) => comment.text)
-      : [],
-    activity: Array.isArray(item?.activity)
-      ? item.activity
-          .map((entry) => ({
-            id: typeof entry?.id === 'string' ? entry.id : makeId(),
-            message: cleanText(String(entry?.message || '')),
-            createdAt: Number.isFinite(Number(entry?.createdAt)) ? Number(entry.createdAt) : Date.now(),
-          }))
-          .filter((entry) => entry.message)
-      : [],
-  };
-  if (!normalized.activity.length) {
-    normalized.activity.push({ id: makeId(), message: 'Signal captured', createdAt: normalized.createdAt });
+function safeLoadAuditLogs() {
+  try {
+    const parsed = JSON.parse(safeGetLocal(AUDIT_LOG_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
   }
-  return normalized;
+}
+
+function safeLoadContext() {
+  try {
+    const parsed = JSON.parse(safeGetLocal(CONTEXT_KEY) || '{}');
+    if (!parsed || typeof parsed !== 'object') return { role: 'admin', orgId: 'vela-main' };
+    return {
+      role: ['admin', 'manager', 'contributor', 'viewer'].includes(parsed.role) ? parsed.role : 'admin',
+      orgId: cleanText(String(parsed.orgId || 'vela-main')) || 'vela-main',
+    };
+  } catch {
+    return { role: 'admin', orgId: 'vela-main' };
+  }
 }
 
 const state = {
-  items: [],
+  items: safeLoadItems(),
+  auditLogs: safeLoadAuditLogs(),
+  apiStats: [],
+  ingestionStatus: { lastRunAt: 0, lastOk: true },
+  rateWindow: [],
+  retentionDays: DEFAULT_RETENTION_DAYS,
+  context: safeLoadContext(),
   filterCategory: 'all',
   filterUrgency: 0,
   search: '',
   submissionMode: false,
-  notifications: [],
-  deliverySettings: {
-    threshold: 4,
-    slackWebhook: '',
-    digestEmail: '',
-  },
 };
 
 const els = {
@@ -166,6 +169,11 @@ const els = {
   owner: document.getElementById('owner'),
   formError: document.getElementById('form-error'),
   template: document.getElementById('community-template'),
+  orgContext: document.getElementById('org-context'),
+  roleContext: document.getElementById('role-context'),
+  startTourBtn: document.getElementById('start-tour'),
+  loadSampleDatasetBtn: document.getElementById('load-sample-dataset'),
+  securityStatus: document.getElementById('security-status'),
   applyTemplate: document.getElementById('apply-template'),
   search: document.getElementById('search'),
   filterCategory: document.getElementById('filter-category'),
@@ -185,25 +193,18 @@ const els = {
   demoMacroBtn: document.getElementById('run-demo-reset-health'),
   finalBundleBtn: document.getElementById('generate-final-evidence-bundle'),
   submissionToggleBtn: document.getElementById('toggle-submission-mode'),
-  backendToggleBtn: document.getElementById('toggle-backend-board'),
-  backendStatusCopy: document.getElementById('backend-status-copy'),
   submissionSpotlight: document.getElementById('submission-spotlight'),
   healthStatus: document.getElementById('health-status'),
-  connectorHistoryEmpty: document.getElementById('connector-history-empty'),
-  connectorHistoryTable: document.getElementById('connector-history-table'),
-  connectorHistoryBody: document.getElementById('connector-history-body'),
+  observabilityStatus: document.getElementById('observability-status'),
+  exportBackupBtn: document.getElementById('export-backup'),
+  restoreBackupInput: document.getElementById('restore-backup'),
+  runRetentionBtn: document.getElementById('run-retention'),
   tpl: document.getElementById('item-template'),
   statTotal: document.getElementById('stat-total'),
   statHigh: document.getElementById('stat-high'),
   statAvg: document.getElementById('stat-avg'),
   statAssigned: document.getElementById('stat-assigned'),
   toast: document.getElementById('toast'),
-  notifyThreshold: document.getElementById('notify-threshold'),
-  slackWebhook: document.getElementById('slack-webhook'),
-  digestEmail: document.getElementById('digest-email'),
-  notificationList: document.getElementById('notification-list'),
-  sendDailyPriorityBtn: document.getElementById('send-daily-priority'),
-  sendWeeklyTeamBtn: document.getElementById('send-weekly-team'),
 };
 
 function score(item) {
@@ -250,78 +251,6 @@ function safeRemoveLocal(key) {
   }
 }
 
-async function apiRequest(path, { method = 'GET', body, headers = {} } = {}) {
-  const response = await fetch(path, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(state.sessionToken ? { Authorization: `Bearer ${state.sessionToken}` } : {}),
-      ...headers,
-    },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
-
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok === false) {
-    throw new Error(payload.error || `Request failed: ${response.status}`);
-  }
-  return payload;
-}
-
-function mapApiSignal(signal) {
-  return {
-    id: signal.id,
-    title: cleanText(String(signal.title || '')),
-    source: cleanText(String(signal.source || '')),
-    category: signal.category,
-    urgency: clampInt(signal.urgency, 1, 5, 3),
-    relevance: clampInt(signal.relevance, 1, 5, 3),
-    confidence: clampInt(signal.confidence, 1, 5, 3),
-    owner: cleanText(String(signal.owner || '')) || 'Unassigned',
-    createdAt: Number(signal.created_at || signal.createdAt || Date.now()),
-  };
-}
-
-async function bootstrapAuth() {
-  const saved = safeGetLocal(API_SESSION_KEY);
-  if (saved) {
-    state.sessionToken = saved;
-    try {
-      await apiRequest('/api/me');
-      state.authReady = true;
-      return;
-    } catch {
-      safeRemoveLocal(API_SESSION_KEY);
-      state.sessionToken = null;
-    }
-  }
-
-  const email = 'demo@community.local';
-  const authStart = await apiRequest('/api/auth/request-link', {
-    method: 'POST',
-    body: { email, orgName: 'Community Signal Board Demo Org' },
-  });
-  const authVerified = await apiRequest('/api/auth/verify', {
-    method: 'POST',
-    body: { token: authStart.token },
-  });
-  state.sessionToken = authVerified.sessionToken;
-  safeSetLocal(API_SESSION_KEY, authVerified.sessionToken);
-  state.authReady = true;
-}
-
-async function refreshItemsFromApi() {
-  const query = new URLSearchParams({
-    category: state.filterCategory,
-    minUrgency: String(state.filterUrgency),
-    search: state.search,
-    sortBy: 'score',
-    order: 'desc',
-  });
-  const data = await apiRequest(`/api/signals?${query.toString()}`);
-  state.items = (data.items || []).map(mapApiSignal);
-}
-
 function formatRelativeTime(ts) {
   const deltaMs = Date.now() - Number(ts || 0);
   const mins = Math.max(1, Math.floor(deltaMs / 60000));
@@ -347,67 +276,6 @@ function loadFormDraft() {
   }
 }
 
-function loadDeliverySettings() {
-  try {
-    const settings = JSON.parse(safeGetLocal(DELIVERY_SETTINGS_KEY) || '{}');
-    if (!settings || typeof settings !== 'object') return;
-    state.deliverySettings.threshold = clampInt(settings.threshold, 1, 5, 4);
-    state.deliverySettings.slackWebhook = cleanText(String(settings.slackWebhook || ''));
-    state.deliverySettings.digestEmail = cleanText(String(settings.digestEmail || ''));
-  } catch {
-    safeRemoveLocal(DELIVERY_SETTINGS_KEY);
-  }
-}
-
-function persistDeliverySettings() {
-  safeSetLocal(DELIVERY_SETTINGS_KEY, JSON.stringify(state.deliverySettings));
-}
-
-function hydrateDeliveryControls() {
-  if (els.notifyThreshold) els.notifyThreshold.value = String(state.deliverySettings.threshold);
-  if (els.slackWebhook) els.slackWebhook.value = state.deliverySettings.slackWebhook;
-  if (els.digestEmail) els.digestEmail.value = state.deliverySettings.digestEmail;
-}
-
-function addActivity(item, message) {
-  item.activity = item.activity || [];
-  item.activity.unshift({ id: makeId(), message, createdAt: Date.now() });
-  item.activity = item.activity.slice(0, 12);
-}
-
-function isOverdue(item) {
-  if (!item.due_at || !item.assigned_user_id) return false;
-  const today = new Date().toISOString().slice(0, 10);
-  return item.due_at < today && !['done', 'dismissed'].includes(item.status);
-}
-
-function updateNotifications() {
-  const threshold = state.deliverySettings.threshold;
-  const urgent = state.items.filter((item) => item.urgency >= threshold).map((item) => `🔥 Urgent (${item.urgency}): ${item.title}`);
-  const overdue = state.items.filter((item) => isOverdue(item)).map((item) => `⏰ Overdue: ${item.title} (assigned ${item.assigned_user_id})`);
-  const assigned = state.items
-    .filter((item) => item.activity?.some((entry) => entry.message.includes('Assigned to')))
-    .map((item) => `👤 Newly assigned: ${item.title} → ${item.assigned_user_id}`);
-
-  state.notifications = [...urgent, ...overdue, ...assigned].slice(0, 20);
-}
-
-function renderNotifications() {
-  if (!els.notificationList) return;
-  els.notificationList.innerHTML = '';
-  if (!state.notifications.length) {
-    const li = document.createElement('li');
-    li.textContent = 'No active notifications.';
-    els.notificationList.appendChild(li);
-    return;
-  }
-  state.notifications.forEach((note) => {
-    const li = document.createElement('li');
-    li.textContent = note;
-    els.notificationList.appendChild(li);
-  });
-}
-
 function saveFormDraft() {
   const draft = {
     title: els.title.value,
@@ -421,29 +289,6 @@ function saveFormDraft() {
   safeSetLocal(FORM_DRAFT_KEY, JSON.stringify(draft));
 }
 
-async function loadConnectorRunHistory() {
-  if (!els.connectorHistoryBody || !els.connectorHistoryTable || !els.connectorHistoryEmpty) return;
-  try {
-    const response = await fetch('./data/connector-run-history.json', { cache: 'no-store' });
-    if (!response.ok) throw new Error(`status_${response.status}`);
-    const rows = await response.json();
-    if (!Array.isArray(rows) || rows.length === 0) return;
-
-    els.connectorHistoryBody.innerHTML = '';
-    rows.slice(0, 12).forEach((row) => {
-      const tr = document.createElement('tr');
-      const statusClass = row.status === 'success' ? 'connector-status-success' : 'connector-status-fail';
-      tr.innerHTML = `<td>${row.connector || 'unknown'}</td><td class="${statusClass}">${row.status || 'unknown'}</td><td>${Number(row.rowsProcessed || 0)}</td><td>${Number(row.rowsInserted || 0)}</td><td>${Number(row.rowsDeduped || 0)}</td><td>${new Date(row.finishedAt || row.startedAt || Date.now()).toLocaleString()}</td>`;
-      els.connectorHistoryBody.appendChild(tr);
-    });
-
-    els.connectorHistoryEmpty.hidden = true;
-    els.connectorHistoryTable.hidden = false;
-  } catch {
-    // Keep empty state if fixture is unavailable in local-only mode.
-  }
-}
-
 let toastTimer;
 function showToast(text) {
   if (!els.toast) return;
@@ -455,118 +300,98 @@ function showToast(text) {
   }, 1500);
 }
 
-
-function roleAtLeast(role, requiredRole) {
-  return ROLE_ORDER.indexOf(role) >= ROLE_ORDER.indexOf(requiredRole);
-}
-
-function can(action, item = null) {
-  const requiredRole = PERMISSIONS[action] || 'admin';
-  if (!roleAtLeast(state.session.role, requiredRole)) return false;
-  if (item && (item.orgId || state.session.orgId) !== state.session.orgId) return false;
-  return true;
-}
-
-function requirePermission(action, item = null) {
-  if (can(action, item)) return true;
-  showToast(`Access denied for ${action} (${state.session.role})`);
-  return false;
-}
-
-function appendAudit(action, details = {}) {
-  const entry = { id: makeId(), ts: Date.now(), orgId: state.session.orgId, role: state.session.role, action, details };
-  state.auditLogs.unshift(entry);
-  state.auditLogs = state.auditLogs.slice(0, 1000);
-  safeSetLocal(AUDIT_LOG_KEY, JSON.stringify(state.auditLogs));
-  renderAuditLogs();
-}
-
-function renderAuditLogs() {
-  if (!els.auditLogList) return;
-  els.auditLogList.innerHTML = '';
-  state.auditLogs.slice(0, 10).forEach((log) => {
-    const li = document.createElement('li');
-    const detail = Object.entries(log.details || {}).map(([k, v]) => `${k}=${String(v)}`).join(', ');
-    li.textContent = `[${new Date(log.ts).toLocaleString()}] [${log.orgId}] ${log.action}${detail ? ` • ${detail}` : ''}`;
-    els.auditLogList.appendChild(li);
-  });
-}
-
-function persistObservability() {
-  safeSetLocal(OBSERVABILITY_KEY, JSON.stringify(state.observability));
-}
-
-function renderObservability() {
-  if (els.obsSummary) {
-    const metrics = Object.entries(state.observability.actionMetrics);
-    if (!metrics.length) {
-      els.obsSummary.textContent = 'No API actions observed yet.';
-    } else {
-      const text = metrics
-        .map(([name, m]) => `${name}: avg ${Math.round(m.totalLatencyMs / Math.max(1, m.count))}ms, err ${m.errors}/${m.count}`)
-        .join(' | ');
-      els.obsSummary.textContent = `Calls ${state.observability.totalCalls}, errors ${state.observability.errors}. ${text}`;
-    }
-  }
-  if (els.ingestionAlert) {
-    const stale = !state.observability.ingestionLastOkAt || Date.now() - state.observability.ingestionLastOkAt > 24 * 60 * 60 * 1000;
-    els.ingestionAlert.textContent = stale
-      ? 'ALERT: ingestion job has not reported success in the last 24h.'
-      : `Ingestion healthy. Last successful run ${formatRelativeTime(state.observability.ingestionLastOkAt)}.`;
-  }
-}
-
-function structuredLog(event, status, latencyMs, context = {}) {
-  console.info('[structured]', JSON.stringify({ ts: new Date().toISOString(), event, status, latencyMs, orgId: state.session.orgId, role: state.session.role, ...context }));
-}
-
-async function trackApiAction(name, fn) {
-  const start = performance.now();
-  let ok = false;
-  try {
-    const result = await fn();
-    ok = true;
-    return result;
-  } catch (error) {
-    state.observability.errors += 1;
-    throw error;
-  } finally {
-    const elapsed = Math.round(performance.now() - start);
-    const metric = state.observability.actionMetrics[name] || { count: 0, totalLatencyMs: 0, errors: 0 };
-    metric.count += 1;
-    metric.totalLatencyMs += elapsed;
-    if (!ok) metric.errors += 1;
-    state.observability.actionMetrics[name] = metric;
-    state.observability.totalCalls += 1;
-    persistObservability();
-    renderObservability();
-    structuredLog(name, ok ? 'ok' : 'error', elapsed);
-  }
-}
-
-function trackWriteRateLimit() {
-  const now = Date.now();
-  state.writeEvents = state.writeEvents.filter((ts) => now - ts < WRITE_RATE_LIMIT.windowMs);
-  if (state.writeEvents.length >= WRITE_RATE_LIMIT.max) return false;
-  state.writeEvents.push(now);
-  return true;
-}
-
-function abuseDetected(item) {
-  const text = `${item.title} ${item.source}`;
-  return ABUSE_PATTERNS.some((pattern) => pattern.test(text));
-}
-
-function updateSessionView() {
-  if (els.orgId) els.orgId.value = state.session.orgId;
-  if (els.userRole) els.userRole.value = state.session.role;
-  if (els.rbacStatus) els.rbacStatus.textContent = `Org ${state.session.orgId} • Role ${state.session.role}`;
-}
-
 function persist() {
   const ok = safeSetLocal(STORAGE_KEY, JSON.stringify(state.items));
   if (!ok) showToast('Storage unavailable: data will not persist after refresh');
   return ok;
+}
+
+function persistAuditLogs() {
+  safeSetLocal(AUDIT_LOG_KEY, JSON.stringify(state.auditLogs.slice(-500)));
+}
+
+function persistContext() {
+  safeSetLocal(CONTEXT_KEY, JSON.stringify(state.context));
+}
+
+function hasPermission(permission) {
+  return (ROLE_PERMISSIONS[state.context.role] || []).includes(permission);
+}
+
+function assertPermission(permission) {
+  if (hasPermission(permission)) return true;
+  showToast(`Access denied for ${state.context.role} on ${permission}`);
+  return false;
+}
+
+function appendAudit(eventType, details) {
+  const event = {
+    id: makeId(),
+    ts: new Date().toISOString(),
+    orgId: state.context.orgId,
+    role: state.context.role,
+    eventType,
+    details,
+  };
+  state.auditLogs.push(event);
+  persistAuditLogs();
+  writeStructuredLog('audit', event);
+}
+
+function writeStructuredLog(type, payload) {
+  const message = {
+    ts: new Date().toISOString(),
+    type,
+    orgId: state.context.orgId,
+    payload,
+  };
+  console.info(JSON.stringify(message));
+}
+
+function enforceRateLimit(actionType) {
+  const now = Date.now();
+  state.rateWindow = state.rateWindow.filter((ts) => now - ts < RATE_LIMIT_WINDOW_MS);
+  if (state.rateWindow.length >= RATE_LIMIT_MAX_ACTIONS) {
+    appendAudit('abuse_prevention_triggered', { actionType, limit: RATE_LIMIT_MAX_ACTIONS });
+    showToast('Rate limit reached. Please wait before more changes.');
+    return false;
+  }
+  state.rateWindow.push(now);
+  return true;
+}
+
+async function trackedApi(action, fn) {
+  const started = performance.now();
+  let ok = true;
+  try {
+    return await fn();
+  } catch (error) {
+    ok = false;
+    throw error;
+  } finally {
+    const latencyMs = Math.round(performance.now() - started);
+    state.apiStats.push({ action, latencyMs, ok, ts: Date.now() });
+    state.apiStats = state.apiStats.slice(-200);
+    updateObservabilityStatus();
+  }
+}
+
+function updateObservabilityStatus() {
+  if (!els.observabilityStatus) return;
+  const stats = state.apiStats;
+  if (!stats.length) {
+    els.observabilityStatus.textContent = 'Observability dashboard idle.';
+    return;
+  }
+  const errors = stats.filter((x) => !x.ok).length;
+  const errorRate = ((errors / stats.length) * 100).toFixed(1);
+  const latencies = [...stats].map((x) => x.latencyMs).sort((a, b) => a - b);
+  const p95 = latencies[Math.floor(latencies.length * 0.95)] || 0;
+  const staleIngestion = Date.now() - state.ingestionStatus.lastRunAt > 15 * 60_000;
+  const ingestionLabel = state.ingestionStatus.lastRunAt
+    ? `${state.ingestionStatus.lastOk ? 'ok' : 'failed'} (${Math.round((Date.now() - state.ingestionStatus.lastRunAt) / 60000)}m ago)`
+    : 'never run';
+  els.observabilityStatus.textContent = `API p95 ${p95}ms • Error rate ${errorRate}% • Ingestion ${ingestionLabel}${staleIngestion ? ' • ALERT stale ingestion job' : ''}`;
 }
 
 function setFieldInvalid(field, invalid) {
@@ -595,7 +420,7 @@ function sortedFilteredItems() {
   const q = state.search.trim().toLowerCase();
 
   return state.items
-    .filter((i) => (i.orgId || state.session.orgId) === state.session.orgId)
+    .filter((i) => i.orgId === state.context.orgId)
     .filter((i) => state.filterCategory === 'all' || i.category === state.filterCategory)
     .filter((i) => i.urgency >= state.filterUrgency)
     .filter((i) => !q || i.title.toLowerCase().includes(q) || i.source.toLowerCase().includes(q))
@@ -603,10 +428,11 @@ function sortedFilteredItems() {
 }
 
 function renderStats() {
-  const total = state.items.length;
-  const highUrgency = state.items.filter((x) => x.urgency >= 4).length;
-  const avgScore = total ? (state.items.reduce((acc, x) => acc + score(x), 0) / total).toFixed(1) : '0.0';
-  const assigned = state.items.filter((x) => x.owner && x.owner !== 'Unassigned').length;
+  const scopedItems = state.items.filter((x) => x.orgId === state.context.orgId);
+  const total = scopedItems.length;
+  const highUrgency = scopedItems.filter((x) => x.urgency >= 4).length;
+  const avgScore = total ? (scopedItems.reduce((acc, x) => acc + score(x), 0) / total).toFixed(1) : '0.0';
+  const assigned = scopedItems.filter((x) => x.owner && x.owner !== 'Unassigned').length;
 
   if (els.statTotal) els.statTotal.textContent = String(total);
   if (els.statHigh) els.statHigh.textContent = String(highUrgency);
@@ -623,7 +449,6 @@ function scoreBand(item) {
 }
 
 function render() {
-  updateNotifications();
   const items = sortedFilteredItems();
   els.list.innerHTML = '';
 
@@ -647,121 +472,86 @@ function render() {
     node.querySelector('.item-metrics').textContent = `Urgency ${item.urgency} • Relevance ${item.relevance} • Confidence ${item.confidence} • Formula ${scoreBreakdown(item)} • ${formatRelativeTime(item.createdAt)}`;
     node.querySelector('.item-action').textContent = `Next action: ${recommendationFor(item)}`;
 
-    const statusInput = node.querySelector('.workflow-status');
-    const dueInput = node.querySelector('.workflow-due');
-    const assignedInput = node.querySelector('.workflow-assigned');
-    const notesInput = node.querySelector('.workflow-notes');
-    statusInput.value = item.status;
-    dueInput.value = item.due_at;
-    assignedInput.value = item.assigned_user_id;
-    notesInput.value = item.action_notes;
-
-    node.querySelector('.save-workflow').addEventListener('click', () => {
-      const previousStatus = item.status;
-      const previousDue = item.due_at;
-      const previousAssignee = item.assigned_user_id;
-
-      item.status = WORKFLOW_STATUSES.includes(statusInput.value) ? statusInput.value : 'new';
-      item.due_at = dueInput.value || '';
-      item.assigned_user_id = cleanText(assignedInput.value);
-      item.action_notes = cleanText(notesInput.value);
-
-      if (previousStatus !== item.status) addActivity(item, `Status changed: ${previousStatus} → ${item.status}`);
-      if (previousDue !== item.due_at) addActivity(item, `Due date updated: ${previousDue || 'none'} → ${item.due_at || 'none'}`);
-      if (previousAssignee !== item.assigned_user_id && item.assigned_user_id) addActivity(item, `Assigned to ${item.assigned_user_id}`);
-
-      persist();
-      updateNotifications();
-      render();
-      showToast('Workflow updated');
-    });
-
-    const commentsList = node.querySelector('.comment-list');
-    item.comments.forEach((comment) => {
-      const commentEl = document.createElement('li');
-      commentEl.textContent = `${comment.author}: ${comment.text} (${formatRelativeTime(comment.createdAt)})`;
-      commentsList.appendChild(commentEl);
-    });
-
-    const activityList = node.querySelector('.activity-list');
-    item.activity.slice(0, 5).forEach((entry) => {
-      const activityEl = document.createElement('li');
-      activityEl.textContent = `${entry.message} (${formatRelativeTime(entry.createdAt)})`;
-      activityList.appendChild(activityEl);
-    });
-
-    node.querySelector('.add-comment').addEventListener('click', () => {
-      const input = node.querySelector('.comment-input');
-      const text = cleanText(input.value || '');
-      if (!text) return;
-      item.comments.unshift({ id: makeId(), text, author: 'Team', createdAt: Date.now() });
-      addActivity(item, `Comment added: ${text.slice(0, 64)}`);
-      persist();
-      render();
-      showToast('Comment posted');
-    });
-
     const scoreEl = node.querySelector('.score');
     scoreEl.textContent = `Score ${score(item)}`;
     scoreEl.title = `Score formula: ${scoreBreakdown(item)}`;
     scoreEl.setAttribute('aria-label', `Score ${score(item)}. Formula ${scoreBreakdown(item)}`);
     scoreEl.classList.add(`score-${scoreBand(item)}`);
 
-    const editBtn = node.querySelector('.edit');
-    editBtn.title = `Edit signal: ${item.title}`;
-    editBtn.addEventListener('click', () => {
-      trackApiAction('editSignal', async () => {
-        if (!requirePermission('editSignal', item)) return;
-        const ownerInput = window.prompt('Owner', item.owner);
-        if (ownerInput === null) return;
-        const urgencyInput = window.prompt('Urgency (1-5)', String(item.urgency));
-        const relevanceInput = window.prompt('Relevance (1-5)', String(item.relevance));
-        const confidenceInput = window.prompt('Confidence (1-5)', String(item.confidence));
-
-        const nextOwner = cleanText(ownerInput) || item.owner;
-        const nextUrgency = clampInt(urgencyInput, 1, 5, item.urgency);
-        const nextRelevance = clampInt(relevanceInput, 1, 5, item.relevance);
-        const nextConfidence = clampInt(confidenceInput, 1, 5, item.confidence);
-
-        if ((nextUrgency !== item.urgency || nextRelevance !== item.relevance || nextConfidence !== item.confidence) && !requirePermission('changeScore', item)) return;
-        if (nextOwner !== item.owner && !requirePermission('changeOwner', item)) return;
-
-        const previous = { owner: item.owner, urgency: item.urgency, relevance: item.relevance, confidence: item.confidence };
-        item.owner = nextOwner;
-        item.urgency = nextUrgency;
-        item.relevance = nextRelevance;
-        item.confidence = nextConfidence;
-        persist();
-        if (previous.owner !== item.owner) appendAudit('ownership.change', { itemId: item.id, from: previous.owner, to: item.owner });
-        if (previous.urgency !== item.urgency || previous.relevance !== item.relevance || previous.confidence !== item.confidence) {
-          appendAudit('score.change', { itemId: item.id, from: `${previous.urgency}/${previous.relevance}/${previous.confidence}`, to: `${item.urgency}/${item.relevance}/${item.confidence}` });
-        }
-        appendAudit('signal.edit', { itemId: item.id, title: item.title });
-        render();
-        showToast('Signal updated');
-      });
-    });
-
     const deleteBtn = node.querySelector('.delete');
+    const editBtn = node.querySelector('.edit');
+    const scoreBtn = node.querySelector('.score-change');
+    const ownerBtn = node.querySelector('.reassign');
+
+    deleteBtn.disabled = !hasPermission('signal:delete');
+    editBtn.disabled = !hasPermission('signal:edit');
+    scoreBtn.disabled = !hasPermission('signal:score');
+    ownerBtn.disabled = !hasPermission('signal:reassign');
+
     deleteBtn.title = `Delete signal: ${item.title}`;
     deleteBtn.setAttribute('aria-label', `Delete signal: ${item.title}`);
-    deleteBtn.addEventListener('click', (evt) => {
-      if (!requirePermission('deleteSignal', item)) return;
+    deleteBtn.addEventListener('click', async (evt) => {
+      if (!assertPermission('signal:delete') || !enforceRateLimit('signal:delete')) return;
       const skipConfirm = evt.shiftKey;
       const approved = skipConfirm || window.confirm(`Delete this signal?\n\n${item.title}`);
       if (!approved) return;
 
-      state.items = state.items.filter((x) => x.id !== item.id);
-      persist();
-      appendAudit('signal.delete', { itemId: item.id, title: item.title });
-      render();
+      await trackedApi('signal_delete', async () => {
+        state.items = state.items.filter((x) => x.id !== item.id);
+        persist();
+        appendAudit('signal_deleted', { itemId: item.id, title: item.title });
+        render();
+      });
       showToast(skipConfirm ? 'Signal removed (quick delete)' : 'Signal removed');
     });
+
+    editBtn.addEventListener('click', async () => {
+      if (!assertPermission('signal:edit') || !enforceRateLimit('signal:edit')) return;
+      const nextTitle = cleanText(window.prompt('Edit title', item.title) || '');
+      if (!nextTitle) return;
+      const nextSource = cleanText(window.prompt('Edit source', item.source) || item.source);
+      await trackedApi('signal_edit', async () => {
+        item.title = nextTitle;
+        item.source = nextSource;
+        persist();
+        appendAudit('signal_edited', { itemId: item.id, title: item.title, source: item.source });
+        render();
+      });
+      showToast('Signal updated');
+    });
+
+    scoreBtn.addEventListener('click', async () => {
+      if (!assertPermission('signal:score') || !enforceRateLimit('signal:score')) return;
+      const nextUrgency = clampInt(window.prompt('Urgency (1-5)', String(item.urgency)), 1, 5, item.urgency);
+      const nextRelevance = clampInt(window.prompt('Relevance (1-5)', String(item.relevance)), 1, 5, item.relevance);
+      const nextConfidence = clampInt(window.prompt('Confidence (1-5)', String(item.confidence)), 1, 5, item.confidence);
+      await trackedApi('signal_score_change', async () => {
+        item.urgency = nextUrgency;
+        item.relevance = nextRelevance;
+        item.confidence = nextConfidence;
+        persist();
+        appendAudit('score_changed', { itemId: item.id, urgency: nextUrgency, relevance: nextRelevance, confidence: nextConfidence });
+        render();
+      });
+      showToast('Score updated');
+    });
+
+    ownerBtn.addEventListener('click', async () => {
+      if (!assertPermission('signal:reassign') || !enforceRateLimit('signal:reassign')) return;
+      const nextOwner = cleanText(window.prompt('New owner', item.owner) || item.owner) || 'Unassigned';
+      await trackedApi('signal_reassign', async () => {
+        item.owner = nextOwner;
+        persist();
+        appendAudit('ownership_changed', { itemId: item.id, owner: nextOwner });
+        render();
+      });
+      showToast('Owner updated');
+    });
+
     els.list.appendChild(node);
   });
 
   renderStats();
-  renderNotifications();
 }
 
 function makeId() {
@@ -803,19 +593,15 @@ function clearFilters({ silent = false } = {}) {
 }
 
 function loadDemoScenario({ silent = false } = {}) {
-  state.items = DEMO_SCENARIO_ITEMS.map((item, idx) =>
-    normalizeSignalItem({
-      ...item,
-      id: `demo-${idx + 1}`,
-      status: 'new',
-      comments: [],
-      activity: [{ id: makeId(), message: 'Loaded from demo scenario', createdAt: Date.now() }],
-    }),
-  );
+  state.items = DEMO_SCENARIO_ITEMS.map((item, idx) => ({
+    ...item,
+    id: `demo-${idx + 1}`,
+    orgId: state.context.orgId,
+  }));
 
   clearFilters({ silent: true });
   safeRemoveLocal(FORM_DRAFT_KEY);
-  await refreshItemsFromApi();
+  persist();
   render();
   if (!silent) showToast('Demo scenario loaded');
 }
@@ -831,13 +617,13 @@ function focusTopRankedCard() {
   return true;
 }
 
-async function runDemoResetHealthMacro({ silentToast = false } = {}) {
+function runDemoResetHealthMacro({ silentToast = false } = {}) {
   if (!els.demoMacroBtn || els.demoMacroBtn.disabled) return true;
 
   let success = false;
   els.demoMacroBtn.disabled = true;
   try {
-    await loadDemoScenario({ silent: true });
+    loadDemoScenario({ silent: true });
     clearFilters({ silent: true });
     const health = runHealthCheck({ silent: true });
     const focused = focusTopRankedCard();
@@ -862,90 +648,12 @@ async function runJudgeFastPath() {
 
   els.judgeFastPathBtn.disabled = true;
   try {
-    const resetOk = await runDemoResetHealthMacro({ silentToast: true });
+    const resetOk = runDemoResetHealthMacro({ silentToast: true });
     if (!resetOk) return;
     await generateFinalEvidenceBundle({ silentToast: true });
     showToast('Judge fast path complete • Demo reset + final evidence bundle ready');
   } finally {
     els.judgeFastPathBtn.disabled = false;
-  }
-}
-
-
-function backendApiBase() {
-  const custom = globalThis.localStorage?.getItem('community-signal-board-api-base');
-  return custom || 'http://localhost:8791';
-}
-
-function setBackendLabel(text) {
-  if (els.backendStatusCopy) els.backendStatusCopy.textContent = text;
-}
-
-async function pullBoardFromBackend() {
-  const res = await fetch(`${backendApiBase()}/v1/live/board`);
-  if (!res.ok) throw new Error(`backend_board_http_${res.status}`);
-  const payload = await res.json();
-  const ranked = Array.isArray(payload.rankedSignals) ? payload.rankedSignals : [];
-  state.items = ranked.map((signal) => ({
-    id: signal.signalId,
-    title: signal.title || signal.content || signal.signalId,
-    source: signal.source || 'Discord',
-    category: 'Opportunity',
-    urgency: clampInt(signal.weighted || 3, 1, 5, 3),
-    relevance: clampInt(signal.weighted || 3, 1, 5, 3),
-    confidence: 3,
-    owner: signal.owner || 'Unassigned',
-    createdAt: Date.parse(signal.createdAt || new Date().toISOString()),
-  }));
-  render();
-}
-
-function connectBoardStream() {
-  if (!state.backendEnabled) return;
-  if (state.backendEventSource) state.backendEventSource.close();
-  const es = new EventSource(`${backendApiBase()}/v1/live/board/stream`);
-  state.backendEventSource = es;
-  es.addEventListener('board.update', async () => {
-    try {
-      await pullBoardFromBackend();
-      setBackendLabel('Live backend stream');
-    } catch {
-      setBackendLabel('Backend stream active, pull failed');
-    }
-  });
-  es.onerror = () => {
-    setBackendLabel('Backend stream disconnected, local fallback');
-  };
-}
-
-async function setBackendMode(enabled) {
-  state.backendEnabled = !!enabled;
-  if (els.backendToggleBtn) {
-    els.backendToggleBtn.textContent = `Backend Board: ${state.backendEnabled ? 'On' : 'Off'}`;
-    els.backendToggleBtn.setAttribute('aria-pressed', state.backendEnabled ? 'true' : 'false');
-  }
-
-  safeSetLocal(BACKEND_TOGGLE_KEY, state.backendEnabled ? 'on' : 'off');
-
-  if (!state.backendEnabled) {
-    if (state.backendEventSource) state.backendEventSource.close();
-    state.backendEventSource = null;
-    setBackendLabel('Local fallback');
-    return;
-  }
-
-  try {
-    await pullBoardFromBackend();
-    connectBoardStream();
-    setBackendLabel('Live backend stream');
-  } catch {
-    state.backendEnabled = false;
-    safeSetLocal(BACKEND_TOGGLE_KEY, 'off');
-    if (els.backendToggleBtn) {
-      els.backendToggleBtn.textContent = 'Backend Board: Off';
-      els.backendToggleBtn.setAttribute('aria-pressed', 'false');
-    }
-    setBackendLabel('Backend unavailable, local fallback');
   }
 }
 
@@ -969,6 +677,7 @@ function toggleSubmissionMode() {
 }
 
 async function generateFinalEvidenceBundle({ silentToast = false } = {}) {
+  if (!assertPermission('signal:export')) return;
   const items = sortedFilteredItems();
   if (!items.length) {
     showToast('No signals available for final evidence bundle');
@@ -1035,6 +744,7 @@ async function generateFinalEvidenceBundle({ silentToast = false } = {}) {
     tryDownloadText(generatedFilenames[2], judgeSnapshot);
     tryDownloadText(generatedFilenames[3], manifestRef);
     tryDownloadText(generatedFilenames[4], receipt);
+    appendAudit('export_performed', { exportType: 'final_evidence_bundle', fileCount: generatedFilenames.length });
 
     if (!silentToast) showToast('Final evidence bundle and judge receipt generated');
   } finally {
@@ -1044,14 +754,8 @@ async function generateFinalEvidenceBundle({ silentToast = false } = {}) {
 
 async function addItem(evt) {
   evt.preventDefault();
-  if (!requirePermission('createSignal')) return;
-  if (!trackWriteRateLimit()) {
-    showToast('Rate limit reached. Please wait before adding more signals.');
-    return;
-  }
-
+  if (!assertPermission('signal:create') || !enforceRateLimit('signal:create')) return;
   const item = {
-    orgId: state.session.orgId,
     id: makeId(),
     title: cleanText(els.title.value),
     source: cleanText(els.source.value),
@@ -1060,13 +764,8 @@ async function addItem(evt) {
     relevance: clampInt(els.relevance.value, 1, 5, 3),
     confidence: clampInt(els.confidence.value, 1, 5, 3),
     owner: cleanText(els.owner.value) || 'Unassigned',
+    orgId: state.context.orgId,
     createdAt: Date.now(),
-    status: 'new',
-    due_at: '',
-    assigned_user_id: '',
-    action_notes: '',
-    comments: [],
-    activity: [],
   };
 
   clearFormError();
@@ -1086,14 +785,11 @@ async function addItem(evt) {
   }
 
   const isDuplicate = state.items.some(
-    (x) => x.title.toLowerCase() === item.title.toLowerCase() && x.source.toLowerCase() === item.source.toLowerCase(),
+    (x) =>
+      x.orgId === state.context.orgId &&
+      x.title.toLowerCase() === item.title.toLowerCase() &&
+      x.source.toLowerCase() === item.source.toLowerCase(),
   );
-
-  if (abuseDetected(item)) {
-    showFormError('Potential abuse/spam pattern detected. Please revise title/source.', els.title);
-    showToast('Signal blocked by abuse prevention policy');
-    return;
-  }
 
   if (isDuplicate) {
     showFormError('A similar signal already exists. Edit the existing item or add a distinct source.', els.title);
@@ -1101,19 +797,19 @@ async function addItem(evt) {
     return;
   }
 
-  const normalizedItem = normalizeSignalItem(item);
-  addActivity(normalizedItem, 'Signal added to board');
-  state.items.push(normalizedItem);
-  persist();
-  appendAudit('signal.create', { itemId: item.id, title: item.title });
-  els.form.reset();
-  clearFormError();
-  els.urgency.value = 3;
-  els.relevance.value = 3;
-  els.confidence.value = 3;
-  safeRemoveLocal(FORM_DRAFT_KEY);
-  render();
-  showToast('Signal added');
+  await trackedApi('signal_create', async () => {
+    state.items.push(item);
+    persist();
+    appendAudit('signal_created', { itemId: item.id, title: item.title, source: item.source });
+    els.form.reset();
+    clearFormError();
+    els.urgency.value = 3;
+    els.relevance.value = 3;
+    els.confidence.value = 3;
+    safeRemoveLocal(FORM_DRAFT_KEY);
+    render();
+    showToast('Signal added');
+  });
 }
 
 function recommendationFor(item) {
@@ -1275,7 +971,7 @@ function tryDownloadText(filename, text) {
 }
 
 function generateDailyBrief() {
-  if (!requirePermission('exportData')) return;
+  if (!assertPermission('signal:export')) return;
   const items = sortedFilteredItems();
   if (!items.length) {
     showToast('No signals available for brief');
@@ -1284,7 +980,7 @@ function generateDailyBrief() {
 
   const { date, lines } = buildBriefLines(items);
   tryDownloadText(`community-daily-brief-${date}.md`, lines.join('\n'));
-  appendAudit('export.brief', { count: items.length, date });
+  appendAudit('export_performed', { exportType: 'daily_brief', itemCount: items.length });
   showToast('Daily brief generated');
 }
 
@@ -1329,6 +1025,7 @@ function buildJudgeSnapshotMarkdown(items, health, now = new Date()) {
 }
 
 async function generateJudgeSnapshot() {
+  if (!assertPermission('signal:export')) return;
   const items = sortedFilteredItems();
   if (!items.length) {
     showToast('No signals available for judge snapshot');
@@ -1338,6 +1035,7 @@ async function generateJudgeSnapshot() {
   const health = runHealthCheck({ silent: true });
   const { date, markdown } = buildJudgeSnapshotMarkdown(items, health);
   tryDownloadText(`judge-snapshot-${date}.md`, markdown);
+  appendAudit('export_performed', { exportType: 'judge_snapshot', itemCount: items.length });
 
   try {
     if (navigator.clipboard?.writeText) {
@@ -1353,7 +1051,6 @@ async function generateJudgeSnapshot() {
 }
 
 async function copyTopActions() {
-  if (!requirePermission('exportData')) return;
   const items = sortedFilteredItems();
   if (!items.length) {
     showToast('No signals available to copy');
@@ -1364,7 +1061,6 @@ async function copyTopActions() {
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);
-      appendAudit('export.copyTopActions', { count: items.length });
       showToast('Top actions copied');
       return;
     }
@@ -1391,7 +1087,7 @@ async function copyTopActions() {
 }
 
 function exportDigest() {
-  if (!requirePermission('exportData')) return;
+  if (!assertPermission('signal:export')) return;
   const items = sortedFilteredItems();
   if (!items.length) {
     showToast('No signals to export');
@@ -1401,60 +1097,8 @@ function exportDigest() {
   const date = new Date().toISOString().slice(0, 10);
   const lines = buildDigestLines(items, date);
   tryDownloadText(`community-signal-digest-${date}.md`, lines.join('\n'));
-  appendAudit('export.digest', { count: items.length, date });
+  appendAudit('export_performed', { exportType: 'digest', itemCount: items.length });
   showToast('Digest exported');
-}
-
-function digestText(kind) {
-  const items = sortedFilteredItems();
-  if (!items.length) return null;
-  const date = new Date().toISOString().slice(0, 10);
-  const title = kind === 'weekly' ? `Weekly Team Digest (${date})` : `Daily Priority Digest (${date})`;
-  const ranked = (kind === 'weekly' ? items.slice(0, 10) : items.filter((item) => item.urgency >= state.deliverySettings.threshold).slice(0, 6))
-    .map((item, idx) => `${idx + 1}. ${item.title} | status=${item.status} | due=${item.due_at || 'n/a'} | assigned=${item.assigned_user_id || 'unassigned'} | score=${score(item)}`)
-    .join('\n');
-  return `${title}\n\n${ranked || 'No items met digest criteria.'}`;
-}
-
-async function postToSlack(text) {
-  if (!state.deliverySettings.slackWebhook) return false;
-  try {
-    const res = await fetch(state.deliverySettings.slackWebhook, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-function sendByEmail(subject, body) {
-  if (!state.deliverySettings.digestEmail) return false;
-  const url = `mailto:${encodeURIComponent(state.deliverySettings.digestEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  window.location.href = url;
-  return true;
-}
-
-async function sendDigest(kind) {
-  const text = digestText(kind);
-  if (!text) {
-    showToast('No signals available for digest delivery');
-    return;
-  }
-
-  const subject = kind === 'weekly' ? 'Weekly team digest' : 'Daily priority digest';
-  const slackOk = await postToSlack(text);
-  const emailOk = sendByEmail(subject, text);
-
-  if (!slackOk && !emailOk) {
-    tryDownloadText(`${kind}-digest-${new Date().toISOString().slice(0, 10)}.md`, text);
-    showToast('No delivery target configured; digest downloaded');
-    return;
-  }
-
-  showToast(`${kind === 'weekly' ? 'Weekly' : 'Daily'} digest delivered${slackOk ? ' to Slack' : ''}${emailOk ? ' via email client' : ''}`);
 }
 
 function setHealthStatus(text, level = 'pass') {
@@ -1497,7 +1141,107 @@ function runHealthCheck({ silent = false } = {}) {
   setHealthStatus(`Health ${corePass ? 'PASS' : 'ATTENTION'} • ${passCount}/${checks.length} checks passed${suffix}`, level);
   if (!silent) showToast(corePass ? 'Health check passed' : 'Health check found issues');
 
+  state.ingestionStatus = { lastRunAt: Date.now(), lastOk: corePass };
+  updateObservabilityStatus();
+
   return { checks, corePass, passCount, level, failed };
+}
+
+function xorText(text, secret) {
+  return btoa(
+    text
+      .split('')
+      .map((ch, idx) => String.fromCharCode(ch.charCodeAt(0) ^ secret.charCodeAt(idx % secret.length)))
+      .join(''),
+  );
+}
+
+function xorDecode(text, secret) {
+  const decoded = atob(text);
+  return decoded
+    .split('')
+    .map((ch, idx) => String.fromCharCode(ch.charCodeAt(0) ^ secret.charCodeAt(idx % secret.length)))
+    .join('');
+}
+
+function exportBackup() {
+  if (!assertPermission('ops:backup')) return;
+  const payload = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    retentionDays: state.retentionDays,
+    orgId: state.context.orgId,
+    encrypted: true,
+    data: xorText(JSON.stringify({ items: state.items, auditLogs: state.auditLogs }), BACKUP_PASSPHRASE),
+  };
+  tryDownloadText(`community-signal-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(payload, null, 2));
+  appendAudit('backup_exported', { itemCount: state.items.length });
+  showToast('Encrypted backup exported');
+}
+
+async function restoreBackup(file) {
+  if (!assertPermission('ops:backup')) return;
+  if (!file) return;
+  const text = await file.text();
+  const payload = JSON.parse(text);
+  const raw = payload.encrypted ? xorDecode(payload.data, BACKUP_PASSPHRASE) : payload.data;
+  const parsed = JSON.parse(raw);
+  state.items = Array.isArray(parsed.items) ? parsed.items : [];
+  state.auditLogs = Array.isArray(parsed.auditLogs) ? parsed.auditLogs : [];
+  persist();
+  persistAuditLogs();
+  appendAudit('backup_restored', { itemCount: state.items.length });
+  render();
+  showToast('Backup restored');
+}
+
+function runRetention() {
+  if (!assertPermission('ops:backup')) return;
+  const cutoff = Date.now() - state.retentionDays * 24 * 60 * 60 * 1000;
+  const before = state.auditLogs.length;
+  state.auditLogs = state.auditLogs.filter((entry) => Date.parse(entry.ts) >= cutoff);
+  persistAuditLogs();
+  appendAudit('retention_applied', { retentionDays: state.retentionDays, deleted: before - state.auditLogs.length });
+  showToast(`Retention applied (${before - state.auditLogs.length} logs pruned)`);
+}
+
+function setContext(role, orgId) {
+  state.context.role = role;
+  state.context.orgId = orgId;
+  persistContext();
+  appendAudit('context_switched', { role, orgId });
+  render();
+}
+
+function startTour() {
+  const steps = [
+    'Step 1: Select your organization + role to enforce RBAC scope.',
+    'Step 2: Add or load sample signals and validate ranking.',
+    'Step 3: Export digest/brief and review audit logs + observability status.',
+  ];
+  window.alert(steps.join('\n\n'));
+  appendAudit('tour_started', { steps: steps.length });
+}
+
+function loadSampleDataset() {
+  const sample = [
+    ...DEMO_SCENARIO_ITEMS,
+    {
+      title: 'Local sponsor offers venue credits for community demo day',
+      source: 'Partner newsletter',
+      category: 'Event',
+      urgency: 3,
+      relevance: 5,
+      confidence: 4,
+      owner: 'Partnership ops',
+      createdAt: Date.now() - 120000,
+    },
+  ];
+  state.items = sample.map((item, idx) => ({ ...item, id: `sample-${idx + 1}`, orgId: state.context.orgId }));
+  persist();
+  appendAudit('sample_dataset_loaded', { itemCount: state.items.length });
+  render();
+  showToast('Sample dataset loaded');
 }
 
 els.form.addEventListener('submit', addItem);
@@ -1508,48 +1252,22 @@ els.form.addEventListener('input', (e) => {
     if (els.formError?.hidden === false) clearFormError();
   }
 });
-els.search.addEventListener('input', async (e) => {
+els.search.addEventListener('input', (e) => {
   state.search = e.target.value;
-  await refreshItemsFromApi();
   render();
 });
-els.filterCategory.addEventListener('change', async (e) => {
+els.filterCategory.addEventListener('change', (e) => {
   state.filterCategory = e.target.value;
-  await refreshItemsFromApi();
   render();
 });
-els.filterUrgency.addEventListener('change', async (e) => {
+els.filterUrgency.addEventListener('change', (e) => {
   state.filterUrgency = Number(e.target.value);
-  await refreshItemsFromApi();
   render();
 });
-els.clearFilters.addEventListener('click', async () => {
-  clearFilters();
-  await refreshItemsFromApi();
-  render();
-});
+els.clearFilters.addEventListener('click', () => clearFilters());
 els.applyTemplate?.addEventListener('click', applyTemplatePreset);
 els.loadDemo?.addEventListener('click', () => loadDemoScenario());
 els.exportBtn.addEventListener('click', exportDigest);
-els.notifyThreshold?.addEventListener('change', (e) => {
-  state.deliverySettings.threshold = clampInt(e.target.value, 1, 5, 4);
-  persistDeliverySettings();
-  render();
-});
-els.slackWebhook?.addEventListener('change', (e) => {
-  state.deliverySettings.slackWebhook = cleanText(e.target.value);
-  persistDeliverySettings();
-});
-els.digestEmail?.addEventListener('change', (e) => {
-  state.deliverySettings.digestEmail = cleanText(e.target.value);
-  persistDeliverySettings();
-});
-els.sendDailyPriorityBtn?.addEventListener('click', () => {
-  sendDigest('daily');
-});
-els.sendWeeklyTeamBtn?.addEventListener('click', () => {
-  sendDigest('weekly');
-});
 els.briefBtn.addEventListener('click', generateDailyBrief);
 els.copyBriefBtn?.addEventListener('click', copyTopActions);
 els.runHealthBtn?.addEventListener('click', () => runHealthCheck());
@@ -1559,46 +1277,37 @@ els.canonicalEvidenceBtn?.addEventListener('click', () => {
 els.judgeSnapshotBtn?.addEventListener('click', () => {
   generateJudgeSnapshot();
 });
-els.judgeFastPathBtn?.addEventListener('click', async () => {
-  await runJudgeFastPath();
+els.judgeFastPathBtn?.addEventListener('click', () => {
+  runJudgeFastPath();
 });
-els.demoMacroBtn?.addEventListener('click', async () => {
-  await runDemoResetHealthMacro();
-});
+els.demoMacroBtn?.addEventListener('click', runDemoResetHealthMacro);
 els.finalBundleBtn?.addEventListener('click', () => {
   generateFinalEvidenceBundle();
 });
 els.submissionToggleBtn?.addEventListener('click', toggleSubmissionMode);
-els.orgId?.addEventListener('change', (e) => {
-  state.session.orgId = cleanText(e.target.value).slice(0, 64) || DEFAULT_SESSION.orgId;
-  safeSetLocal(SESSION_KEY, JSON.stringify(state.session));
-  updateSessionView();
-  render();
+els.orgContext?.addEventListener('change', (e) => {
+  setContext(state.context.role, e.target.value);
 });
-els.userRole?.addEventListener('change', (e) => {
-  state.session.role = ROLE_ORDER.includes(e.target.value) ? e.target.value : DEFAULT_SESSION.role;
-  safeSetLocal(SESSION_KEY, JSON.stringify(state.session));
-  updateSessionView();
-  render();
+els.roleContext?.addEventListener('change', (e) => {
+  setContext(e.target.value, state.context.orgId);
 });
-els.exportBackupBtn?.addEventListener('click', () => { exportBackup(); });
-els.restoreBackupInput?.addEventListener('change', (e) => { const file = e.target.files?.[0]; if (file) restoreBackupFromFile(file); });
-els.retentionDays?.addEventListener('change', (e) => {
-  state.retentionDays = clampInt(e.target.value, 1, 3650, state.retentionDays);
-  safeSetLocal(RETENTION_KEY, JSON.stringify(state.retentionDays));
-});
-els.runRetentionBtn?.addEventListener('click', applyRetentionPolicy);
-els.runIngestionCheckBtn?.addEventListener('click', runIngestionAlertCheck);
 els.startTourBtn?.addEventListener('click', startTour);
 els.loadSampleDatasetBtn?.addEventListener('click', loadSampleDataset);
+els.exportBackupBtn?.addEventListener('click', exportBackup);
+els.restoreBackupInput?.addEventListener('change', (e) => {
+  restoreBackup(e.target.files?.[0]);
+  e.target.value = '';
+});
+els.runRetentionBtn?.addEventListener('click', runRetention);
 
 loadFormDraft();
-loadDeliverySettings();
-hydrateDeliveryControls();
 setSubmissionMode(false);
-updateSessionView();
-renderAuditLogs();
-renderObservability();
-if (els.retentionDays) els.retentionDays.value = String(state.retentionDays);
+if (els.orgContext) els.orgContext.value = state.context.orgId;
+if (els.roleContext) els.roleContext.value = state.context.role;
+if (els.securityStatus) {
+  els.securityStatus.textContent = `Security: role ${state.context.role} in ${state.context.orgId} • abuse controls and encrypted backup active.`;
+}
 persist();
+persistContext();
+updateObservabilityStatus();
 render();
