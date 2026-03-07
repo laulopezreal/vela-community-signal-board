@@ -1,14 +1,6 @@
 const FORM_DRAFT_KEY = 'community-signal-board-form-draft-v1';
-const AUDIT_LOG_KEY = 'community-signal-board-audit-log-v1';
-const OBSERVABILITY_KEY = 'community-signal-board-observability-v1';
-const SESSION_KEY = 'community-signal-board-session-v1';
-const RETENTION_KEY = 'community-signal-board-retention-days-v1';
-
-const DEFAULT_SESSION = { orgId: 'vela-community', role: 'contributor' };
-const ROLE_ORDER = ['viewer', 'contributor', 'manager', 'admin'];
-const PERMISSIONS = { createSignal: 'contributor', editSignal: 'contributor', changeScore: 'manager', changeOwner: 'manager', deleteSignal: 'manager', exportData: 'viewer', manageSecurity: 'admin' };
-const WRITE_RATE_LIMIT = { max: 15, windowMs: 60 * 1000 };
-const ABUSE_PATTERNS = [/free\s+money/i, /crypto\s+airdrop/i, /click\s+here\s+now/i, /http:\/\//i];
+const DELIVERY_SETTINGS_KEY = 'community-signal-board-delivery-v1';
+const WORKFLOW_STATUSES = ['new', 'triaged', 'in_progress', 'done', 'dismissed'];
 
 const TEMPLATE_PRESETS = {
   startup: {
@@ -102,34 +94,51 @@ function safeLoadItems() {
     const parsed = JSON.parse(raw || '[]');
     if (!Array.isArray(parsed)) return [];
 
-    return parsed
-      .map((item) => ({
-        id: typeof item.id === 'string' ? item.id : `legacy-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        title: cleanText(String(item.title || '')),
-        source: cleanText(String(item.source || '')),
-        category: ['Opportunity', 'Funding', 'Event', 'Tool', 'Hiring'].includes(item.category)
-          ? item.category
-          : 'Opportunity',
-        urgency: clampInt(item.urgency, 1, 5, 3),
-        relevance: clampInt(item.relevance, 1, 5, 3),
-        confidence: clampInt(item.confidence, 1, 5, 3),
-        owner: cleanText(String(item.owner || '')) || 'Unassigned',
-        createdAt: Number.isFinite(Number(item.createdAt)) ? Number(item.createdAt) : Date.now(),
-        orgId: cleanText(String(item.orgId || DEFAULT_SESSION.orgId)) || DEFAULT_SESSION.orgId,
-      }))
-      .filter((item) => item.title && item.source);
+    return parsed.map(normalizeSignalItem).filter((item) => item.title && item.source);
   } catch {
     return [];
   }
 }
 
-function safeLoadJson(key, fallback) {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(key) || 'null');
-    return parsed ?? fallback;
-  } catch {
-    return fallback;
+function normalizeSignalItem(item) {
+  const normalized = {
+    id: typeof item?.id === 'string' ? item.id : `legacy-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    title: cleanText(String(item?.title || '')),
+    source: cleanText(String(item?.source || '')),
+    category: ['Opportunity', 'Funding', 'Event', 'Tool', 'Hiring'].includes(item?.category) ? item.category : 'Opportunity',
+    urgency: clampInt(item?.urgency, 1, 5, 3),
+    relevance: clampInt(item?.relevance, 1, 5, 3),
+    confidence: clampInt(item?.confidence, 1, 5, 3),
+    owner: cleanText(String(item?.owner || '')) || 'Unassigned',
+    createdAt: Number.isFinite(Number(item?.createdAt)) ? Number(item?.createdAt) : Date.now(),
+    status: WORKFLOW_STATUSES.includes(item?.status) ? item.status : 'new',
+    due_at: typeof item?.due_at === 'string' ? item.due_at : '',
+    assigned_user_id: cleanText(String(item?.assigned_user_id || '')),
+    action_notes: cleanText(String(item?.action_notes || '')),
+    comments: Array.isArray(item?.comments)
+      ? item.comments
+          .map((comment) => ({
+            id: typeof comment?.id === 'string' ? comment.id : makeId(),
+            text: cleanText(String(comment?.text || '')),
+            author: cleanText(String(comment?.author || '')) || 'Team',
+            createdAt: Number.isFinite(Number(comment?.createdAt)) ? Number(comment.createdAt) : Date.now(),
+          }))
+          .filter((comment) => comment.text)
+      : [],
+    activity: Array.isArray(item?.activity)
+      ? item.activity
+          .map((entry) => ({
+            id: typeof entry?.id === 'string' ? entry.id : makeId(),
+            message: cleanText(String(entry?.message || '')),
+            createdAt: Number.isFinite(Number(entry?.createdAt)) ? Number(entry.createdAt) : Date.now(),
+          }))
+          .filter((entry) => entry.message)
+      : [],
+  };
+  if (!normalized.activity.length) {
+    normalized.activity.push({ id: makeId(), message: 'Signal captured', createdAt: normalized.createdAt });
   }
+  return normalized;
 }
 
 const state = {
@@ -138,11 +147,12 @@ const state = {
   filterUrgency: 0,
   search: '',
   submissionMode: false,
-  session: (() => { const raw = safeLoadJson(SESSION_KEY, DEFAULT_SESSION); return { orgId: cleanText(String(raw.orgId || DEFAULT_SESSION.orgId)) || DEFAULT_SESSION.orgId, role: ROLE_ORDER.includes(raw.role) ? raw.role : DEFAULT_SESSION.role }; })(),
-  auditLogs: (() => { const logs = safeLoadJson(AUDIT_LOG_KEY, []); return Array.isArray(logs) ? logs : []; })(),
-  observability: (() => { const o = safeLoadJson(OBSERVABILITY_KEY, {}); return { actionMetrics: o.actionMetrics || {}, errors: Number(o.errors) || 0, totalCalls: Number(o.totalCalls) || 0, ingestionLastOkAt: Number(o.ingestionLastOkAt) || 0 }; })(),
-  retentionDays: clampInt(safeLoadJson(RETENTION_KEY, 180), 1, 3650, 180),
-  writeEvents: [],
+  notifications: [],
+  deliverySettings: {
+    threshold: 4,
+    slackWebhook: '',
+    digestEmail: '',
+  },
 };
 
 const els = {
@@ -188,20 +198,12 @@ const els = {
   statAvg: document.getElementById('stat-avg'),
   statAssigned: document.getElementById('stat-assigned'),
   toast: document.getElementById('toast'),
-  orgId: document.getElementById('org-id'),
-  userRole: document.getElementById('user-role'),
-  rbacStatus: document.getElementById('rbac-status'),
-  auditLogList: document.getElementById('audit-log-list'),
-  obsSummary: document.getElementById('obs-summary'),
-  ingestionAlert: document.getElementById('ingestion-alert'),
-  exportBackupBtn: document.getElementById('export-backup'),
-  restoreBackupInput: document.getElementById('restore-backup'),
-  retentionDays: document.getElementById('retention-days'),
-  runRetentionBtn: document.getElementById('run-retention'),
-  runIngestionCheckBtn: document.getElementById('run-ingestion-check'),
-  securityStatus: document.getElementById('security-status'),
-  startTourBtn: document.getElementById('start-tour'),
-  loadSampleDatasetBtn: document.getElementById('load-sample-dataset'),
+  notifyThreshold: document.getElementById('notify-threshold'),
+  slackWebhook: document.getElementById('slack-webhook'),
+  digestEmail: document.getElementById('digest-email'),
+  notificationList: document.getElementById('notification-list'),
+  sendDailyPriorityBtn: document.getElementById('send-daily-priority'),
+  sendWeeklyTeamBtn: document.getElementById('send-weekly-team'),
 };
 
 function score(item) {
@@ -343,6 +345,67 @@ function loadFormDraft() {
   } catch {
     safeRemoveLocal(FORM_DRAFT_KEY);
   }
+}
+
+function loadDeliverySettings() {
+  try {
+    const settings = JSON.parse(safeGetLocal(DELIVERY_SETTINGS_KEY) || '{}');
+    if (!settings || typeof settings !== 'object') return;
+    state.deliverySettings.threshold = clampInt(settings.threshold, 1, 5, 4);
+    state.deliverySettings.slackWebhook = cleanText(String(settings.slackWebhook || ''));
+    state.deliverySettings.digestEmail = cleanText(String(settings.digestEmail || ''));
+  } catch {
+    safeRemoveLocal(DELIVERY_SETTINGS_KEY);
+  }
+}
+
+function persistDeliverySettings() {
+  safeSetLocal(DELIVERY_SETTINGS_KEY, JSON.stringify(state.deliverySettings));
+}
+
+function hydrateDeliveryControls() {
+  if (els.notifyThreshold) els.notifyThreshold.value = String(state.deliverySettings.threshold);
+  if (els.slackWebhook) els.slackWebhook.value = state.deliverySettings.slackWebhook;
+  if (els.digestEmail) els.digestEmail.value = state.deliverySettings.digestEmail;
+}
+
+function addActivity(item, message) {
+  item.activity = item.activity || [];
+  item.activity.unshift({ id: makeId(), message, createdAt: Date.now() });
+  item.activity = item.activity.slice(0, 12);
+}
+
+function isOverdue(item) {
+  if (!item.due_at || !item.assigned_user_id) return false;
+  const today = new Date().toISOString().slice(0, 10);
+  return item.due_at < today && !['done', 'dismissed'].includes(item.status);
+}
+
+function updateNotifications() {
+  const threshold = state.deliverySettings.threshold;
+  const urgent = state.items.filter((item) => item.urgency >= threshold).map((item) => `🔥 Urgent (${item.urgency}): ${item.title}`);
+  const overdue = state.items.filter((item) => isOverdue(item)).map((item) => `⏰ Overdue: ${item.title} (assigned ${item.assigned_user_id})`);
+  const assigned = state.items
+    .filter((item) => item.activity?.some((entry) => entry.message.includes('Assigned to')))
+    .map((item) => `👤 Newly assigned: ${item.title} → ${item.assigned_user_id}`);
+
+  state.notifications = [...urgent, ...overdue, ...assigned].slice(0, 20);
+}
+
+function renderNotifications() {
+  if (!els.notificationList) return;
+  els.notificationList.innerHTML = '';
+  if (!state.notifications.length) {
+    const li = document.createElement('li');
+    li.textContent = 'No active notifications.';
+    els.notificationList.appendChild(li);
+    return;
+  }
+  state.notifications.forEach((note) => {
+    const li = document.createElement('li');
+    li.textContent = note;
+    els.notificationList.appendChild(li);
+  });
 }
 
 function saveFormDraft() {
@@ -560,6 +623,7 @@ function scoreBand(item) {
 }
 
 function render() {
+  updateNotifications();
   const items = sortedFilteredItems();
   els.list.innerHTML = '';
 
@@ -582,6 +646,60 @@ function render() {
     node.querySelector('.item-meta').textContent = `${item.category} • ${item.source} • owner ${item.owner}`;
     node.querySelector('.item-metrics').textContent = `Urgency ${item.urgency} • Relevance ${item.relevance} • Confidence ${item.confidence} • Formula ${scoreBreakdown(item)} • ${formatRelativeTime(item.createdAt)}`;
     node.querySelector('.item-action').textContent = `Next action: ${recommendationFor(item)}`;
+
+    const statusInput = node.querySelector('.workflow-status');
+    const dueInput = node.querySelector('.workflow-due');
+    const assignedInput = node.querySelector('.workflow-assigned');
+    const notesInput = node.querySelector('.workflow-notes');
+    statusInput.value = item.status;
+    dueInput.value = item.due_at;
+    assignedInput.value = item.assigned_user_id;
+    notesInput.value = item.action_notes;
+
+    node.querySelector('.save-workflow').addEventListener('click', () => {
+      const previousStatus = item.status;
+      const previousDue = item.due_at;
+      const previousAssignee = item.assigned_user_id;
+
+      item.status = WORKFLOW_STATUSES.includes(statusInput.value) ? statusInput.value : 'new';
+      item.due_at = dueInput.value || '';
+      item.assigned_user_id = cleanText(assignedInput.value);
+      item.action_notes = cleanText(notesInput.value);
+
+      if (previousStatus !== item.status) addActivity(item, `Status changed: ${previousStatus} → ${item.status}`);
+      if (previousDue !== item.due_at) addActivity(item, `Due date updated: ${previousDue || 'none'} → ${item.due_at || 'none'}`);
+      if (previousAssignee !== item.assigned_user_id && item.assigned_user_id) addActivity(item, `Assigned to ${item.assigned_user_id}`);
+
+      persist();
+      updateNotifications();
+      render();
+      showToast('Workflow updated');
+    });
+
+    const commentsList = node.querySelector('.comment-list');
+    item.comments.forEach((comment) => {
+      const commentEl = document.createElement('li');
+      commentEl.textContent = `${comment.author}: ${comment.text} (${formatRelativeTime(comment.createdAt)})`;
+      commentsList.appendChild(commentEl);
+    });
+
+    const activityList = node.querySelector('.activity-list');
+    item.activity.slice(0, 5).forEach((entry) => {
+      const activityEl = document.createElement('li');
+      activityEl.textContent = `${entry.message} (${formatRelativeTime(entry.createdAt)})`;
+      activityList.appendChild(activityEl);
+    });
+
+    node.querySelector('.add-comment').addEventListener('click', () => {
+      const input = node.querySelector('.comment-input');
+      const text = cleanText(input.value || '');
+      if (!text) return;
+      item.comments.unshift({ id: makeId(), text, author: 'Team', createdAt: Date.now() });
+      addActivity(item, `Comment added: ${text.slice(0, 64)}`);
+      persist();
+      render();
+      showToast('Comment posted');
+    });
 
     const scoreEl = node.querySelector('.score');
     scoreEl.textContent = `Score ${score(item)}`;
@@ -643,6 +761,7 @@ function render() {
   });
 
   renderStats();
+  renderNotifications();
 }
 
 function makeId() {
@@ -684,11 +803,15 @@ function clearFilters({ silent = false } = {}) {
 }
 
 function loadDemoScenario({ silent = false } = {}) {
-  state.items = DEMO_SCENARIO_ITEMS.map((item, idx) => ({
-    ...item,
-    id: `demo-${idx + 1}`,
-    orgId: state.session.orgId,
-  }));
+  state.items = DEMO_SCENARIO_ITEMS.map((item, idx) =>
+    normalizeSignalItem({
+      ...item,
+      id: `demo-${idx + 1}`,
+      status: 'new',
+      comments: [],
+      activity: [{ id: makeId(), message: 'Loaded from demo scenario', createdAt: Date.now() }],
+    }),
+  );
 
   clearFilters({ silent: true });
   safeRemoveLocal(FORM_DRAFT_KEY);
@@ -938,6 +1061,12 @@ async function addItem(evt) {
     confidence: clampInt(els.confidence.value, 1, 5, 3),
     owner: cleanText(els.owner.value) || 'Unassigned',
     createdAt: Date.now(),
+    status: 'new',
+    due_at: '',
+    assigned_user_id: '',
+    action_notes: '',
+    comments: [],
+    activity: [],
   };
 
   clearFormError();
@@ -972,7 +1101,9 @@ async function addItem(evt) {
     return;
   }
 
-  state.items.push(item);
+  const normalizedItem = normalizeSignalItem(item);
+  addActivity(normalizedItem, 'Signal added to board');
+  state.items.push(normalizedItem);
   persist();
   appendAudit('signal.create', { itemId: item.id, title: item.title });
   els.form.reset();
@@ -1274,98 +1405,56 @@ function exportDigest() {
   showToast('Digest exported');
 }
 
-
-async function encryptTextWithPassphrase(text, passphrase) {
-  if (!globalThis.crypto?.subtle || !passphrase) return text;
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const keyBytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(passphrase));
-  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt']);
-  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(text));
-  return JSON.stringify({ iv: Array.from(iv), cipher: btoa(String.fromCharCode(...new Uint8Array(encrypted))) });
+function digestText(kind) {
+  const items = sortedFilteredItems();
+  if (!items.length) return null;
+  const date = new Date().toISOString().slice(0, 10);
+  const title = kind === 'weekly' ? `Weekly Team Digest (${date})` : `Daily Priority Digest (${date})`;
+  const ranked = (kind === 'weekly' ? items.slice(0, 10) : items.filter((item) => item.urgency >= state.deliverySettings.threshold).slice(0, 6))
+    .map((item, idx) => `${idx + 1}. ${item.title} | status=${item.status} | due=${item.due_at || 'n/a'} | assigned=${item.assigned_user_id || 'unassigned'} | score=${score(item)}`)
+    .join('\n');
+  return `${title}\n\n${ranked || 'No items met digest criteria.'}`;
 }
 
-async function decryptTextWithPassphrase(text, passphrase) {
-  if (!globalThis.crypto?.subtle) return text;
-  const payload = JSON.parse(text);
-  if (!payload?.iv || !payload?.cipher) return text;
-  const keyBytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(passphrase));
-  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['decrypt']);
-  const cipher = Uint8Array.from(atob(payload.cipher), (c) => c.charCodeAt(0));
-  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(payload.iv) }, key, cipher);
-  return new TextDecoder().decode(plain);
-}
-
-async function exportBackup() {
-  if (!requirePermission('manageSecurity')) return;
-  const passphrase = window.prompt('Optional backup passphrase (blank for plaintext JSON)') || '';
-  const payload = JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), retentionDays: state.retentionDays, items: state.items, auditLogs: state.auditLogs, observability: state.observability });
-  const encrypted = await encryptTextWithPassphrase(payload, passphrase);
-  tryDownloadText(`community-signal-backup-${new Date().toISOString().slice(0, 10)}.json`, encrypted);
-  appendAudit('export.backup', { encrypted: !!passphrase });
-  showToast('Backup exported');
-}
-
-async function restoreBackupFromFile(file) {
-  if (!requirePermission('manageSecurity')) return;
-  const raw = await file.text();
-  let parsed;
+async function postToSlack(text) {
+  if (!state.deliverySettings.slackWebhook) return false;
   try {
-    parsed = JSON.parse(raw);
+    const res = await fetch(state.deliverySettings.slackWebhook, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    return res.ok;
   } catch {
-    const passphrase = window.prompt('Encrypted backup detected. Enter passphrase to restore:') || '';
-    const decrypted = await decryptTextWithPassphrase(raw, passphrase);
-    parsed = JSON.parse(decrypted);
+    return false;
+  }
+}
+
+function sendByEmail(subject, body) {
+  if (!state.deliverySettings.digestEmail) return false;
+  const url = `mailto:${encodeURIComponent(state.deliverySettings.digestEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = url;
+  return true;
+}
+
+async function sendDigest(kind) {
+  const text = digestText(kind);
+  if (!text) {
+    showToast('No signals available for digest delivery');
+    return;
   }
 
-  state.items = Array.isArray(parsed.items) ? parsed.items : state.items;
-  state.auditLogs = Array.isArray(parsed.auditLogs) ? parsed.auditLogs : state.auditLogs;
-  state.observability = parsed.observability && typeof parsed.observability === 'object' ? parsed.observability : state.observability;
-  state.retentionDays = clampInt(parsed.retentionDays, 1, 3650, state.retentionDays);
-  persist();
-  safeSetLocal(AUDIT_LOG_KEY, JSON.stringify(state.auditLogs));
-  persistObservability();
-  safeSetLocal(RETENTION_KEY, JSON.stringify(state.retentionDays));
-  render();
-  renderAuditLogs();
-  renderObservability();
-  appendAudit('backup.restore', { itemCount: state.items.length });
-  showToast('Backup restored');
-}
+  const subject = kind === 'weekly' ? 'Weekly team digest' : 'Daily priority digest';
+  const slackOk = await postToSlack(text);
+  const emailOk = sendByEmail(subject, text);
 
-function applyRetentionPolicy() {
-  const cutoff = Date.now() - state.retentionDays * 24 * 60 * 60 * 1000;
-  const beforeLogs = state.auditLogs.length;
-  state.auditLogs = state.auditLogs.filter((x) => x.ts >= cutoff);
-  safeSetLocal(AUDIT_LOG_KEY, JSON.stringify(state.auditLogs));
-  renderAuditLogs();
-  appendAudit('retention.apply', { days: state.retentionDays, removed: beforeLogs - state.auditLogs.length });
-  showToast('Retention policy applied');
-}
+  if (!slackOk && !emailOk) {
+    tryDownloadText(`${kind}-digest-${new Date().toISOString().slice(0, 10)}.md`, text);
+    showToast('No delivery target configured; digest downloaded');
+    return;
+  }
 
-function runIngestionAlertCheck() {
-  state.observability.ingestionLastOkAt = Date.now();
-  persistObservability();
-  renderObservability();
-  appendAudit('ingestion.alertCheck', { status: 'ok' });
-  showToast('Ingestion monitor check updated');
-}
-
-function startTour() {
-  const steps = [
-    'Step 1/4: Set your org and role in the RBAC panel.',
-    'Step 2/4: Use a template or sample dataset to seed the board.',
-    'Step 3/4: Review ranked signals and edit ownership/scores.',
-    'Step 4/4: Export digest/brief and monitor observability panels.',
-  ];
-  steps.forEach((step, idx) => setTimeout(() => showToast(step), idx * 1400));
-}
-
-function loadSampleDataset() {
-  state.items = SAMPLE_ONBOARDING_DATASET.map((item, idx) => ({ ...item, id: `sample-${idx + 1}`, orgId: state.session.orgId }));
-  persist();
-  appendAudit('dataset.loadSample', { count: state.items.length });
-  render();
-  showToast('Sample dataset loaded');
+  showToast(`${kind === 'weekly' ? 'Weekly' : 'Daily'} digest delivered${slackOk ? ' to Slack' : ''}${emailOk ? ' via email client' : ''}`);
 }
 
 function setHealthStatus(text, level = 'pass') {
@@ -1440,11 +1529,26 @@ els.clearFilters.addEventListener('click', async () => {
   render();
 });
 els.applyTemplate?.addEventListener('click', applyTemplatePreset);
-els.loadDemo?.addEventListener('click', async () => {
-  await loadDemoScenario();
+els.loadDemo?.addEventListener('click', () => loadDemoScenario());
+els.exportBtn.addEventListener('click', exportDigest);
+els.notifyThreshold?.addEventListener('change', (e) => {
+  state.deliverySettings.threshold = clampInt(e.target.value, 1, 5, 4);
+  persistDeliverySettings();
+  render();
 });
-els.exportBtn.addEventListener('click', async () => {
-  await exportDigest();
+els.slackWebhook?.addEventListener('change', (e) => {
+  state.deliverySettings.slackWebhook = cleanText(e.target.value);
+  persistDeliverySettings();
+});
+els.digestEmail?.addEventListener('change', (e) => {
+  state.deliverySettings.digestEmail = cleanText(e.target.value);
+  persistDeliverySettings();
+});
+els.sendDailyPriorityBtn?.addEventListener('click', () => {
+  sendDigest('daily');
+});
+els.sendWeeklyTeamBtn?.addEventListener('click', () => {
+  sendDigest('weekly');
 });
 els.briefBtn.addEventListener('click', generateDailyBrief);
 els.copyBriefBtn?.addEventListener('click', copyTopActions);
@@ -1489,6 +1593,8 @@ els.startTourBtn?.addEventListener('click', startTour);
 els.loadSampleDatasetBtn?.addEventListener('click', loadSampleDataset);
 
 loadFormDraft();
+loadDeliverySettings();
+hydrateDeliveryControls();
 setSubmissionMode(false);
 updateSessionView();
 renderAuditLogs();

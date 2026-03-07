@@ -12,35 +12,35 @@ Community Signal Board gives you one ranked queue so you can act today, not next
 A lightweight board that captures community signals, ranks what matters now, and generates a shareable daily digest.
 
 ## What it does
-- Add high-signal updates in seconds
-- Rank them with a transparent formula: `urgency * 2 + relevance + confidence`
-- Filter by category and urgency
-- Surface clear next-action guidance
-- Generate a daily brief and digest for async alignment
+- Captures high-signal updates manually (title, source, urgency, category, relevance, confidence, owner)
+- Tracks workflow fields per signal (`status`, `due_at`, `assigned_user_id`, `action_notes`)
+- Ranks updates with a transparent scoring formula: `urgency * 2 + relevance + confidence`
+- Filters by category and urgency to focus fast
+- Applies community templates (startup, OSS, local org) for faster, consistent capture
+- Shows per-signal next-action guidance directly in the ranked board
+- Supports async collaboration with per-signal comments + activity log
+- Raises notifications for urgency threshold, overdue assigned work, and new assignments
+- Sends daily priority and weekly team digests through Slack webhook and/or email client (`mailto`)
+- Generates a daily brief markdown with action recommendations and explicit scoring formula
+- Copies top actions to clipboard for fast sharing in chat/email
+- Exports a markdown digest with recommended actions for async sharing
+- Primary one-click judge path via **Submission Mode + Run Judge Fast Path**
+- Explicit fallback demo flow via **Run Health Check + Load Demo Scenario**
+- Generates daily brief and digest markdown artifacts for judging evidence
+- Safely recovers from corrupted localStorage data without breaking app load
 
-## Judge quickstart (90 seconds)
-1. Run the app locally.
-2. Turn **Submission Mode ON**.
-3. Click **Run Judge Fast Path**.
-4. Show ranked output and explain the scoring formula.
-5. Close with impact: fewer missed opportunities, faster team alignment.
+## Why this community
+Small founder and builder groups miss opportunities when important signals are split across Slack, X, email, and chats. This app creates one clean board and one daily digest.
 
+## Real Value Proof (submission block)
+- **User / job-to-be-done:** founder/operator who must convert scattered community signals into a same-day prioritized action queue.
+- **Baseline (before):** manual multi-channel scanning, ad hoc prioritization, no reproducible ranked output from exported real inputs.
+- **After (with app):** exported JSON signals pass through a deterministic adapter path into a ranked queue using Vela scoring.
+- **Measurable delta:** triage moves from variable manual sorting to one deterministic command run with replayable output artifact.
+- **Proof artifacts:** [docs/artifacts/real-value-before-after.md](docs/artifacts/real-value-before-after.md), [ops/real-input-adapter-contract.md](ops/real-input-adapter-contract.md), [docs/artifacts/sample-exported-signals.json](docs/artifacts/sample-exported-signals.json), [docs/artifacts/real-input-ranked-queue-snapshot.md](docs/artifacts/real-input-ranked-queue-snapshot.md)
 
-## Assumptions for enterprise controls (local MVP)
-- This remains a local-first browser app with no server/database, so RBAC, audit logs, observability, retention, and backups are implemented in localStorage scope.
-- Organization scope is represented by an `orgId` string selected in-app; all list/query operations are filtered to the active org.
-- Encryption at rest/in transit is represented by optional AES-GCM encrypted backup exports and HTTPS-only deployment guidance.
-- Secrets management is modeled as operational guidance (environment/config discipline), not in-app secret storage.
-
-## New governance, security, and onboarding capabilities
-- **RBAC (org-scoped):** roles `admin`, `manager`, `contributor`, `viewer` now gate create/edit/delete/export/security actions.
-- **Audit logs:** local immutable-style event stream for signal edits, score changes, ownership changes, digest/brief/backup exports, retention runs, and restores.
-- **Observability:** structured console logs (`[structured]` JSON), per-action latency/error counters, and ingestion freshness alert panel.
-- **Backup/restore + retention:** export backup JSON (optionally encrypted), restore backups, and apply retention days to audit log history.
-- **Security hardening:** write-action rate limiting, basic abuse-pattern blocking, org/role permission checks, and encrypted backup option.
-- **Onboarding acceleration:** sample dataset loader and in-app guided tour in addition to existing templates/demo scenario.
-
-## Run locally
+## Real input readiness (local, no secrets)
+Run the local ingestion bridge from repo root:
 
 ```bash
 npm install
@@ -105,6 +105,11 @@ Included:
 - Ranked dashboard
 - Filters
 - Digest export
+
+## Implementation assumptions (for this iteration)
+- Delivery is implemented in-browser (no backend service). Slack delivery uses an incoming webhook URL configured in UI; email delivery opens the user's email client via `mailto`.
+- "Newly assigned" notifications are inferred from workflow activity entries generated when `assigned_user_id` changes.
+- Overdue logic is date-only (`due_at < current local date`) and excludes signals already marked `done` or `dismissed`.
 
 Not included (intentional weekend non-goals):
 - External API integrations
