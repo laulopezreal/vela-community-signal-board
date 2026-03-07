@@ -17,6 +17,11 @@ A lightweight app that helps small communities capture scattered updates, rank w
 - Filters by category and urgency to focus fast
 - Applies community templates (startup, OSS, local org) for faster, consistent capture
 - Shows per-signal next-action guidance directly in the ranked board
+- Preserves default scoring policy v1: `urgency * 2 + relevance + confidence`
+- Supports per-organization scoring policy overrides (weights, category multipliers, confidence handling)
+- Tracks lifecycle metrics (time-to-triage, time-to-action, high-score completion rate, missed-opportunity rate)
+- Adds analytics dashboard for KPI tracking and before/after policy comparison
+- Captures recommendation feedback (`useful`/`not useful`) to adapt action suggestions by category
 - Generates a daily brief markdown with action recommendations and explicit scoring formula
 - Copies top actions to clipboard for fast sharing in chat/email
 - Exports a markdown digest with recommended actions for async sharing
@@ -65,6 +70,12 @@ Not included (intentional weekend non-goals):
 - Auth and multi-tenant accounts
 - External API integrations
 - Advanced analytics
+
+## Assumptions for policy analytics
+- **Default policy v1 remains canonical** when no organization override exists.
+- **Completion rate of high-score signals** uses high-score threshold `>= 13`.
+- **Missed-opportunity rate** is counted as high-score signals older than 24 hours with no action timestamp.
+- **Before/after comparison** snapshots “before” metrics at the time a policy override is saved, and compares against current metrics for that organization.
 
 ## Dedicated style improvement loop (parallel to functional loop)
 This repo now runs a separate style loop in parallel with feature work.

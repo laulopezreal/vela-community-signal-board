@@ -1,8 +1,27 @@
 const STORAGE_KEY = 'community-signal-board-v1';
 const FORM_DRAFT_KEY = 'community-signal-board-form-draft-v1';
+const POLICY_KEY = 'community-signal-board-policy-v1';
+const POLICY_HISTORY_KEY = 'community-signal-board-policy-history-v1';
+const FEEDBACK_KEY = 'community-signal-board-recommendation-feedback-v1';
+
+const DEFAULT_ORG = 'Default org';
+const CATEGORY_KEYS = ['Opportunity', 'Funding', 'Event', 'Tool', 'Hiring'];
+const DEFAULT_POLICY_V1 = {
+  version: 'v1',
+  weights: { urgency: 2, relevance: 1, confidence: 1 },
+  confidenceHandling: 'linear',
+  categoryMultipliers: {
+    Opportunity: 1,
+    Funding: 1,
+    Event: 1,
+    Tool: 1,
+    Hiring: 1,
+  },
+};
 
 const TEMPLATE_PRESETS = {
   startup: {
+    organization: 'Startup community',
     source: 'Founder Slack',
     category: 'Opportunity',
     urgency: 4,
@@ -11,6 +30,7 @@ const TEMPLATE_PRESETS = {
     owner: 'Growth lead',
   },
   oss: {
+    organization: 'OSS maintainers',
     source: 'GitHub + Discord',
     category: 'Tool',
     urgency: 3,
@@ -19,6 +39,7 @@ const TEMPLATE_PRESETS = {
     owner: 'Maintainer on-call',
   },
   'local-org': {
+    organization: 'Local org',
     source: 'Meetup + WhatsApp',
     category: 'Event',
     urgency: 4,
@@ -32,6 +53,7 @@ const DEMO_SCENARIO_ITEMS = [
   {
     title: 'Grant call closes tonight for community tooling',
     source: 'Email digest',
+    organization: DEFAULT_ORG,
     category: 'Funding',
     urgency: 5,
     relevance: 4,
@@ -42,6 +64,7 @@ const DEMO_SCENARIO_ITEMS = [
   {
     title: 'AI safety workshop requests 2 startup mentors',
     source: 'Founder Slack',
+    organization: DEFAULT_ORG,
     category: 'Opportunity',
     urgency: 4,
     relevance: 5,
@@ -52,6 +75,7 @@ const DEMO_SCENARIO_ITEMS = [
   {
     title: 'Partner community opening senior ML role',
     source: 'WhatsApp group',
+    organization: DEFAULT_ORG,
     category: 'Hiring',
     urgency: 4,
     relevance: 4,
@@ -62,6 +86,7 @@ const DEMO_SCENARIO_ITEMS = [
   {
     title: 'Open-source observability tool launches beta',
     source: 'X/Twitter',
+    organization: DEFAULT_ORG,
     category: 'Tool',
     urgency: 3,
     relevance: 4,
@@ -92,7 +117,8 @@ function safeLoadItems() {
         id: typeof item.id === 'string' ? item.id : `legacy-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         title: cleanText(String(item.title || '')),
         source: cleanText(String(item.source || '')),
-        category: ['Opportunity', 'Funding', 'Event', 'Tool', 'Hiring'].includes(item.category)
+        organization: cleanText(String(item.organization || '')) || DEFAULT_ORG,
+        category: CATEGORY_KEYS.includes(item.category)
           ? item.category
           : 'Opportunity',
         urgency: clampInt(item.urgency, 1, 5, 3),
@@ -100,6 +126,9 @@ function safeLoadItems() {
         confidence: clampInt(item.confidence, 1, 5, 3),
         owner: cleanText(String(item.owner || '')) || 'Unassigned',
         createdAt: Number.isFinite(Number(item.createdAt)) ? Number(item.createdAt) : Date.now(),
+        triagedAt: Number.isFinite(Number(item.triagedAt)) ? Number(item.triagedAt) : null,
+        actionedAt: Number.isFinite(Number(item.actionedAt)) ? Number(item.actionedAt) : null,
+        completedAt: Number.isFinite(Number(item.completedAt)) ? Number(item.completedAt) : null,
       }))
       .filter((item) => item.title && item.source);
   } catch {
@@ -107,8 +136,38 @@ function safeLoadItems() {
   }
 }
 
+function safeLoadJson(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === 'object' ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function safeLoadPolicies() {
+  const parsed = safeLoadJson(POLICY_KEY, {});
+  if (!parsed || typeof parsed !== 'object') return {};
+  return parsed;
+}
+
+function safeLoadPolicyHistory() {
+  const parsed = safeLoadJson(POLICY_HISTORY_KEY, []);
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+function safeLoadFeedback() {
+  const parsed = safeLoadJson(FEEDBACK_KEY, {});
+  return parsed && typeof parsed === 'object' ? parsed : {};
+}
+
 const state = {
   items: safeLoadItems(),
+  policies: safeLoadPolicies(),
+  policyHistory: safeLoadPolicyHistory(),
+  recommendationFeedback: safeLoadFeedback(),
+  activeOrg: DEFAULT_ORG,
   filterCategory: 'all',
   filterUrgency: 0,
   search: '',
@@ -119,6 +178,7 @@ const els = {
   form: document.getElementById('signal-form'),
   title: document.getElementById('title'),
   source: document.getElementById('source'),
+  organization: document.getElementById('organization'),
   category: document.getElementById('category'),
   urgency: document.getElementById('urgency'),
   relevance: document.getElementById('relevance'),
@@ -152,15 +212,46 @@ const els = {
   statHigh: document.getElementById('stat-high'),
   statAvg: document.getElementById('stat-avg'),
   statAssigned: document.getElementById('stat-assigned'),
+  activeOrg: document.getElementById('active-org'),
+  savePolicyBtn: document.getElementById('save-policy'),
+  policyWeightUrgency: document.getElementById('policy-weight-urgency'),
+  policyWeightRelevance: document.getElementById('policy-weight-relevance'),
+  policyWeightConfidence: document.getElementById('policy-weight-confidence'),
+  policyConfidenceHandling: document.getElementById('policy-confidence-handling'),
+  policyCategoryOpportunity: document.getElementById('policy-category-opportunity'),
+  policyCategoryFunding: document.getElementById('policy-category-funding'),
+  policyCategoryEvent: document.getElementById('policy-category-event'),
+  policyCategoryTool: document.getElementById('policy-category-tool'),
+  policyCategoryHiring: document.getElementById('policy-category-hiring'),
+  analyticsMetrics: document.getElementById('analytics-metrics'),
+  policyComparison: document.getElementById('policy-comparison'),
   toast: document.getElementById('toast'),
 };
 
+function policyForOrg(org) {
+  return state.policies[org] || DEFAULT_POLICY_V1;
+}
+
+function confidenceAdjusted(confidence, handling) {
+  if (handling === 'boost-high') return confidence >= 4 ? confidence + 1 : confidence;
+  if (handling === 'penalize-low') return confidence <= 2 ? confidence - 1 : confidence;
+  return confidence;
+}
+
 function score(item) {
-  return item.urgency * 2 + item.relevance + item.confidence;
+  const policy = policyForOrg(item.organization || DEFAULT_ORG);
+  const adjustedConfidence = confidenceAdjusted(item.confidence, policy.confidenceHandling);
+  const base =
+    item.urgency * Number(policy.weights.urgency || 0) +
+    item.relevance * Number(policy.weights.relevance || 0) +
+    adjustedConfidence * Number(policy.weights.confidence || 0);
+  const categoryMultiplier = Number(policy.categoryMultipliers?.[item.category] || 1);
+  return Math.round(base * categoryMultiplier * 10) / 10;
 }
 
 function scoreBreakdown(item) {
-  return `${item.urgency}*2 + ${item.relevance} + ${item.confidence} = ${score(item)}`;
+  const policy = policyForOrg(item.organization || DEFAULT_ORG);
+  return `${item.urgency}*${policy.weights.urgency} + ${item.relevance}*${policy.weights.relevance} + ${item.confidence}*${policy.weights.confidence} (${policy.confidenceHandling}) × ${item.category}(${policy.categoryMultipliers[item.category] ?? 1}) = ${score(item)}`;
 }
 
 function clampInt(value, min, max, fallback) {
@@ -214,6 +305,7 @@ function loadFormDraft() {
     if (!draft || typeof draft !== 'object') return;
     els.title.value = typeof draft.title === 'string' ? draft.title : '';
     els.source.value = typeof draft.source === 'string' ? draft.source : '';
+    els.organization.value = typeof draft.organization === 'string' ? draft.organization : '';
     els.category.value = typeof draft.category === 'string' ? draft.category : 'Opportunity';
     els.urgency.value = String(clampInt(draft.urgency, 1, 5, 3));
     els.relevance.value = String(clampInt(draft.relevance, 1, 5, 3));
@@ -228,6 +320,7 @@ function saveFormDraft() {
   const draft = {
     title: els.title.value,
     source: els.source.value,
+    organization: els.organization.value,
     category: els.category.value,
     urgency: els.urgency.value,
     relevance: els.relevance.value,
@@ -249,7 +342,11 @@ function showToast(text) {
 }
 
 function persist() {
-  const ok = safeSetLocal(STORAGE_KEY, JSON.stringify(state.items));
+  const ok =
+    safeSetLocal(STORAGE_KEY, JSON.stringify(state.items)) &&
+    safeSetLocal(POLICY_KEY, JSON.stringify(state.policies)) &&
+    safeSetLocal(POLICY_HISTORY_KEY, JSON.stringify(state.policyHistory)) &&
+    safeSetLocal(FEEDBACK_KEY, JSON.stringify(state.recommendationFeedback));
   if (!ok) showToast('Storage unavailable: data will not persist after refresh');
   return ok;
 }
@@ -298,6 +395,101 @@ function renderStats() {
   if (els.statAssigned) els.statAssigned.textContent = String(assigned);
 }
 
+function averageHours(items, accessor) {
+  const values = items
+    .map((item) => {
+      const end = accessor(item);
+      if (!end || !item.createdAt) return null;
+      return Math.max(0, (end - item.createdAt) / 3600000);
+    })
+    .filter((v) => Number.isFinite(v));
+  if (!values.length) return 'n/a';
+  return (values.reduce((acc, value) => acc + value, 0) / values.length).toFixed(1);
+}
+
+function computeLifecycleMetrics(items) {
+  const highScoreItems = items.filter((item) => score(item) >= 13);
+  const highCompleted = highScoreItems.filter((item) => item.completedAt).length;
+  const missedHigh = highScoreItems.filter((item) => !item.actionedAt && Date.now() - item.createdAt > 24 * 3600000).length;
+  return {
+    timeToTriageHours: averageHours(items, (item) => item.triagedAt),
+    timeToActionHours: averageHours(items, (item) => item.actionedAt),
+    highScoreCompletionRate: highScoreItems.length ? `${Math.round((highCompleted / highScoreItems.length) * 100)}%` : 'n/a',
+    missedOpportunityRate: highScoreItems.length ? `${Math.round((missedHigh / highScoreItems.length) * 100)}%` : 'n/a',
+  };
+}
+
+function renderAnalytics() {
+  if (!els.analyticsMetrics) return;
+  const metrics = computeLifecycleMetrics(state.items);
+  els.analyticsMetrics.innerHTML = [
+    `<li><strong>Time-to-triage:</strong> ${metrics.timeToTriageHours}h</li>`,
+    `<li><strong>Time-to-action:</strong> ${metrics.timeToActionHours}h</li>`,
+    `<li><strong>High-score completion rate:</strong> ${metrics.highScoreCompletionRate}</li>`,
+    `<li><strong>Missed-opportunity rate:</strong> ${metrics.missedOpportunityRate}</li>`,
+  ].join('');
+
+  const latestChange = [...state.policyHistory].reverse().find((entry) => entry.organization === state.activeOrg);
+  if (!els.policyComparison) return;
+  if (!latestChange) {
+    els.policyComparison.textContent = 'No policy change recorded yet.';
+    return;
+  }
+
+  const before = latestChange.before;
+  els.policyComparison.textContent = `Org ${state.activeOrg} changed policy at ${new Date(latestChange.changedAt).toLocaleString()}. Before: triage ${before.timeToTriageHours}h, action ${before.timeToActionHours}h, completion ${before.highScoreCompletionRate}, missed ${before.missedOpportunityRate}. After: triage ${metrics.timeToTriageHours}h, action ${metrics.timeToActionHours}h, completion ${metrics.highScoreCompletionRate}, missed ${metrics.missedOpportunityRate}.`;
+}
+
+function organizationOptions() {
+  const orgs = new Set([DEFAULT_ORG, ...state.items.map((item) => item.organization || DEFAULT_ORG), ...Object.keys(state.policies)]);
+  return [...orgs].sort((a, b) => a.localeCompare(b));
+}
+
+function syncPolicyForm() {
+  if (!els.activeOrg) return;
+  const options = organizationOptions();
+  els.activeOrg.innerHTML = options.map((org) => `<option value="${org}">${org}</option>`).join('');
+  if (!options.includes(state.activeOrg)) state.activeOrg = options[0] || DEFAULT_ORG;
+  els.activeOrg.value = state.activeOrg;
+  const policy = policyForOrg(state.activeOrg);
+
+  els.policyWeightUrgency.value = String(policy.weights.urgency);
+  els.policyWeightRelevance.value = String(policy.weights.relevance);
+  els.policyWeightConfidence.value = String(policy.weights.confidence);
+  els.policyConfidenceHandling.value = policy.confidenceHandling;
+  els.policyCategoryOpportunity.value = String(policy.categoryMultipliers.Opportunity ?? 1);
+  els.policyCategoryFunding.value = String(policy.categoryMultipliers.Funding ?? 1);
+  els.policyCategoryEvent.value = String(policy.categoryMultipliers.Event ?? 1);
+  els.policyCategoryTool.value = String(policy.categoryMultipliers.Tool ?? 1);
+  els.policyCategoryHiring.value = String(policy.categoryMultipliers.Hiring ?? 1);
+}
+
+function savePolicyForActiveOrg() {
+  const org = state.activeOrg || DEFAULT_ORG;
+  const before = computeLifecycleMetrics(state.items.filter((item) => (item.organization || DEFAULT_ORG) === org));
+  state.policies[org] = {
+    version: 'v1',
+    weights: {
+      urgency: Number(els.policyWeightUrgency.value) || DEFAULT_POLICY_V1.weights.urgency,
+      relevance: Number(els.policyWeightRelevance.value) || DEFAULT_POLICY_V1.weights.relevance,
+      confidence: Number(els.policyWeightConfidence.value) || DEFAULT_POLICY_V1.weights.confidence,
+    },
+    confidenceHandling: els.policyConfidenceHandling.value || 'linear',
+    categoryMultipliers: {
+      Opportunity: Number(els.policyCategoryOpportunity.value) || 1,
+      Funding: Number(els.policyCategoryFunding.value) || 1,
+      Event: Number(els.policyCategoryEvent.value) || 1,
+      Tool: Number(els.policyCategoryTool.value) || 1,
+      Hiring: Number(els.policyCategoryHiring.value) || 1,
+    },
+  };
+
+  state.policyHistory.push({ organization: org, changedAt: Date.now(), before });
+  persist();
+  render();
+  showToast(`Saved policy for ${org}`);
+}
+
 function scoreBand(item) {
   const total = score(item);
   if (total >= 16) return 'critical';
@@ -326,8 +518,8 @@ function render() {
     itemEl.tabIndex = 0;
 
     node.querySelector('.item-title').textContent = item.title;
-    node.querySelector('.item-meta').textContent = `${item.category} • ${item.source} • owner ${item.owner}`;
-    node.querySelector('.item-metrics').textContent = `Urgency ${item.urgency} • Relevance ${item.relevance} • Confidence ${item.confidence} • Formula ${scoreBreakdown(item)} • ${formatRelativeTime(item.createdAt)}`;
+    node.querySelector('.item-meta').textContent = `${item.organization || DEFAULT_ORG} • ${item.category} • ${item.source} • owner ${item.owner}`;
+    node.querySelector('.item-metrics').textContent = `Urgency ${item.urgency} • Relevance ${item.relevance} • Confidence ${item.confidence} • Formula ${scoreBreakdown(item)} • ${formatRelativeTime(item.createdAt)} • Triaged ${item.triagedAt ? formatRelativeTime(item.triagedAt) : 'no'} • Actioned ${item.actionedAt ? formatRelativeTime(item.actionedAt) : 'no'} • Completed ${item.completedAt ? 'yes' : 'no'}`;
     node.querySelector('.item-action').textContent = `Next action: ${recommendationFor(item)}`;
 
     const scoreEl = node.querySelector('.score');
@@ -349,10 +541,28 @@ function render() {
       render();
       showToast(skipConfirm ? 'Signal removed (quick delete)' : 'Signal removed');
     });
+
+    node.querySelector('.feedback-useful')?.addEventListener('click', () => {
+      recordRecommendationFeedback(item, true);
+    });
+    node.querySelector('.feedback-not-useful')?.addEventListener('click', () => {
+      recordRecommendationFeedback(item, false);
+    });
+    node.querySelector('.mark-triaged')?.addEventListener('click', () => {
+      updateLifecycle(item.id, 'triagedAt');
+    });
+    node.querySelector('.mark-actioned')?.addEventListener('click', () => {
+      updateLifecycle(item.id, 'actionedAt');
+    });
+    node.querySelector('.mark-completed')?.addEventListener('click', () => {
+      toggleCompleted(item.id);
+    });
     els.list.appendChild(node);
   });
 
   renderStats();
+  syncPolicyForm();
+  renderAnalytics();
 }
 
 function makeId() {
@@ -374,6 +584,7 @@ function applyTemplatePreset() {
   }
 
   els.source.value = preset.source;
+  els.organization.value = preset.organization || '';
   els.category.value = preset.category;
   els.urgency.value = String(preset.urgency);
   els.relevance.value = String(preset.relevance);
@@ -556,12 +767,16 @@ function addItem(evt) {
     id: makeId(),
     title: cleanText(els.title.value),
     source: cleanText(els.source.value),
+    organization: cleanText(els.organization.value) || DEFAULT_ORG,
     category: els.category.value,
     urgency: clampInt(els.urgency.value, 1, 5, 3),
     relevance: clampInt(els.relevance.value, 1, 5, 3),
     confidence: clampInt(els.confidence.value, 1, 5, 3),
     owner: cleanText(els.owner.value) || 'Unassigned',
     createdAt: Date.now(),
+    triagedAt: null,
+    actionedAt: null,
+    completedAt: null,
   };
 
   clearFormError();
@@ -597,17 +812,52 @@ function addItem(evt) {
   els.urgency.value = 3;
   els.relevance.value = 3;
   els.confidence.value = 3;
+  els.organization.value = '';
   safeRemoveLocal(FORM_DRAFT_KEY);
   render();
   showToast('Signal added');
 }
 
+function updateLifecycle(itemId, field) {
+  const now = Date.now();
+  state.items = state.items.map((item) => (item.id === itemId ? { ...item, [field]: item[field] || now } : item));
+  persist();
+  render();
+}
+
+function toggleCompleted(itemId) {
+  state.items = state.items.map((item) => {
+    if (item.id !== itemId) return item;
+    return { ...item, completedAt: item.completedAt ? null : Date.now() };
+  });
+  persist();
+  render();
+}
+
+function recordRecommendationFeedback(item, useful) {
+  const key = item.category;
+  const current = state.recommendationFeedback[key] || { useful: 0, notUseful: 0 };
+  const next = useful
+    ? { useful: current.useful + 1, notUseful: current.notUseful }
+    : { useful: current.useful, notUseful: current.notUseful + 1 };
+  state.recommendationFeedback[key] = next;
+  persist();
+  showToast(useful ? 'Feedback saved: useful' : 'Feedback saved: not useful');
+}
+
 function recommendationFor(item) {
-  if (item.urgency >= 5) return 'Act now: assign owner and post to core channel in the next 30 minutes.';
-  if (item.category === 'Funding') return 'Check eligibility and draft application notes before end of day.';
-  if (item.category === 'Hiring') return 'Share with hiring lead and capture candidate/referral deadline.';
-  if (item.category === 'Event') return 'Confirm attendance window and who will represent the community.';
-  if (item.category === 'Opportunity') return 'Validate fit and send outreach while signal is still fresh.';
+  const feedback = state.recommendationFeedback[item.category] || { useful: 0, notUseful: 0 };
+  const fallbackMode = feedback.notUseful > feedback.useful;
+
+  if (item.urgency >= 5) {
+    return fallbackMode
+      ? 'Escalate now: create a 2-step action checklist and confirm accountable owner in 15 minutes.'
+      : 'Act now: assign owner and post to core channel in the next 30 minutes.';
+  }
+  if (item.category === 'Funding') return fallbackMode ? 'Prioritize fit check, then prep one-page application draft.' : 'Check eligibility and draft application notes before end of day.';
+  if (item.category === 'Hiring') return fallbackMode ? 'Schedule recruiter sync and define referral ask + deadline.' : 'Share with hiring lead and capture candidate/referral deadline.';
+  if (item.category === 'Event') return fallbackMode ? 'Create attendance decision owner and prep outreach message draft.' : 'Confirm attendance window and who will represent the community.';
+  if (item.category === 'Opportunity') return fallbackMode ? 'Run quick qualification checklist, then send outreach update.' : 'Validate fit and send outreach while signal is still fresh.';
   return 'Log next step and owner for tomorrow morning standup.';
 }
 
@@ -965,6 +1215,12 @@ els.judgeFastPathBtn?.addEventListener('click', () => {
   runJudgeFastPath();
 });
 els.demoMacroBtn?.addEventListener('click', runDemoResetHealthMacro);
+els.activeOrg?.addEventListener('change', (e) => {
+  state.activeOrg = e.target.value || DEFAULT_ORG;
+  syncPolicyForm();
+  render();
+});
+els.savePolicyBtn?.addEventListener('click', savePolicyForActiveOrg);
 els.finalBundleBtn?.addEventListener('click', () => {
   generateFinalEvidenceBundle();
 });
