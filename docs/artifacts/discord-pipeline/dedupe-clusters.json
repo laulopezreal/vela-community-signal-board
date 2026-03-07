@@ -2,45 +2,37 @@
   {
     "clusterId": "cl_1a61e9cc3b",
     "dedupeKey": "asked budget deck otherwise pause risk sponsor tomorrow updated",
-    "canonicalSignalId": "sig_ff60f7869b6d",
-    "title": "Sponsor asked for updated deck by tomorrow, otherwise budget pause risk.",
-    "source": "Discord #grants",
+    "canonicalSignalId": "sig_aa52670552c1",
     "members": [
-      "sig_ff60f7869b6d"
+      "sig_aa52670552c1"
     ],
     "weighted": 2.95
   },
   {
     "clusterId": "cl_cb1752f1c4",
     "dedupeKey": "30 call closes community grant mins need next owner tonight",
-    "canonicalSignalId": "sig_ee5cf4b61fd0",
-    "title": "Grant call closes tonight for community tooling. Need owner in next 30 mins.",
-    "source": "Discord #grants",
+    "canonicalSignalId": "sig_26d8869b7c5a",
     "members": [
-      "sig_ee5cf4b61fd0"
+      "sig_26d8869b7c5a"
     ],
     "weighted": 2.85
   },
   {
     "clusterId": "cl_dc7caaa9f2",
     "dedupeKey": "agent blocked bug integration missing parser schema webhook workflow",
-    "canonicalSignalId": "sig_b8e5eeda3ef9",
-    "title": "Agent workflow integration blocked by missing webhook schema and bug in parser.",
-    "source": "Discord #product",
+    "canonicalSignalId": "sig_23433779b316",
     "members": [
-      "sig_b8e5eeda3ef9",
-      "sig_ec71bd3bc93a"
+      "sig_23433779b316",
+      "sig_4f5d764bcb4a"
     ],
     "weighted": 2.75
   },
   {
     "clusterId": "cl_d3d1994702",
     "dedupeKey": "automation built decision logs ops playbook scale should template weekly",
-    "canonicalSignalId": "sig_08cee6312c29",
-    "title": "Built automation playbook template for decision logs, should scale weekly ops.",
-    "source": "Discord #product",
+    "canonicalSignalId": "sig_002e26f8be93",
     "members": [
-      "sig_08cee6312c29"
+      "sig_002e26f8be93"
     ],
     "weighted": 2.2
   }

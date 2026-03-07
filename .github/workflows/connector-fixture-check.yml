@@ -1,0 +1,17 @@
+name: connector-fixture-check
+
+on:
+  pull_request:
+  push:
+    branches: [ dev ]
+
+jobs:
+  verify-connectors:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify connector fixture snapshots
+        run: ./ops/check_connector_fixtures.sh

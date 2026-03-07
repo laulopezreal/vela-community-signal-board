@@ -1,0 +1,22 @@
+[
+  {
+    "signalId": "sig_0d183d66694f",
+    "connector": "discord",
+    "externalId": "discord:d-1",
+    "threadId": "thread-1",
+    "source": "Discord #founders",
+    "title": "Urgent sponsor intro needed tonight for AI infra founder dinner",
+    "content": "Urgent sponsor intro needed tonight for AI infra founder dinner",
+    "createdAt": "2026-03-01T08:00:00.000Z",
+    "ownerHint": "Growth lead",
+    "primaryDimension": "Revenue",
+    "revenue": 4,
+    "product": 2,
+    "risk": 4,
+    "leverage": 3,
+    "weighted": 3.35,
+    "weighted100": 67,
+    "dedupeKey": "ai dinner founder infra intro needed sponsor tonight urgent",
+    "idempotencyKey": "9620d6de704496521b79a5627b9fb0f6477be2af6d2b074ae3cd3e03545a0637"
+  }
+]
