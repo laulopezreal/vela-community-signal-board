@@ -105,7 +105,7 @@ function normalizeSignalItem(item) {
     relevance: clampInt(item?.relevance, 1, 5, 3),
     confidence: clampInt(item?.confidence, 1, 5, 3),
     owner: cleanText(String(item?.owner || '')) || 'Unassigned',
-    createdAt: Number.isFinite(Number(item?.createdAt)) ? Number(item.createdAt) : Date.now(),
+    createdAt: Number.isFinite(Number(item?.createdAt)) ? Number(item?.createdAt) : Date.now(),
     status: WORKFLOW_STATUSES.includes(item?.status) ? item.status : 'new',
     due_at: typeof item?.due_at === 'string' ? item.due_at : '',
     assigned_user_id: cleanText(String(item?.assigned_user_id || '')),
