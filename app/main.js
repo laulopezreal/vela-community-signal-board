@@ -125,6 +125,9 @@ const els = {
   backendStatusCopy: document.getElementById('backend-status-copy'),
   submissionSpotlight: document.getElementById('submission-spotlight'),
   healthStatus: document.getElementById('health-status'),
+  connectorHistoryEmpty: document.getElementById('connector-history-empty'),
+  connectorHistoryTable: document.getElementById('connector-history-table'),
+  connectorHistoryBody: document.getElementById('connector-history-body'),
   tpl: document.getElementById('item-template'),
   statTotal: document.getElementById('stat-total'),
   statHigh: document.getElementById('stat-high'),
@@ -285,6 +288,29 @@ function saveFormDraft() {
     owner: els.owner.value,
   };
   safeSetLocal(FORM_DRAFT_KEY, JSON.stringify(draft));
+}
+
+async function loadConnectorRunHistory() {
+  if (!els.connectorHistoryBody || !els.connectorHistoryTable || !els.connectorHistoryEmpty) return;
+  try {
+    const response = await fetch('./data/connector-run-history.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`status_${response.status}`);
+    const rows = await response.json();
+    if (!Array.isArray(rows) || rows.length === 0) return;
+
+    els.connectorHistoryBody.innerHTML = '';
+    rows.slice(0, 12).forEach((row) => {
+      const tr = document.createElement('tr');
+      const statusClass = row.status === 'success' ? 'connector-status-success' : 'connector-status-fail';
+      tr.innerHTML = `<td>${row.connector || 'unknown'}</td><td class="${statusClass}">${row.status || 'unknown'}</td><td>${Number(row.rowsProcessed || 0)}</td><td>${Number(row.rowsInserted || 0)}</td><td>${Number(row.rowsDeduped || 0)}</td><td>${new Date(row.finishedAt || row.startedAt || Date.now()).toLocaleString()}</td>`;
+      els.connectorHistoryBody.appendChild(tr);
+    });
+
+    els.connectorHistoryEmpty.hidden = true;
+    els.connectorHistoryTable.hidden = false;
+  } catch {
+    // Keep empty state if fixture is unavailable in local-only mode.
+  }
 }
 
 let toastTimer;
@@ -1123,6 +1149,7 @@ async function initApp() {
     showToast('API unavailable. Start server with: npm start');
   }
   render();
+  await loadConnectorRunHistory();
 }
 
 initApp();

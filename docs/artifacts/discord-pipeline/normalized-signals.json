@@ -1,0 +1,22 @@
+[
+  {
+    "signalId": "sig_fdd5ac895f54",
+    "externalId": "fallback:1",
+    "threadId": "fallback-thread-1",
+    "source": "Fallback dataset",
+    "title": "Urgent partner intro request for AI infra founders",
+    "content": "Urgent partner intro request for AI infra founders",
+    "createdAt": "2026-02-28T09:00:00Z",
+    "ownerHint": "Partnerships",
+    "primaryDimension": "Revenue",
+    "revenue": 5,
+    "product": 3,
+    "risk": 2,
+    "leverage": 4,
+    "weighted": 3.6,
+    "weighted100": 72,
+    "dedupeKey": "ai founders infra intro partner request urgent",
+    "idempotencyKey": "fdd5ac895f54cbdd750eb3c079d5c435b661bece060ecf9163a7058ce0dae4b4",
+    "fallback": true
+  }
+]

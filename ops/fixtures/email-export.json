@@ -1,0 +1,12 @@
+{
+  "emails": [
+    {
+      "id": "e-1",
+      "subject": "Repeatable onboarding playbook draft ready",
+      "body": "Repeatable onboarding playbook draft ready for automation rollout",
+      "sentAt": "2026-03-01T10:30:00Z",
+      "mailbox": "Partnership inbox",
+      "conversationId": "mail-thread-1"
+    }
+  ]
+}
