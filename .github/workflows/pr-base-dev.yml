@@ -1,0 +1,19 @@
+name: Enforce PR base branch
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  require-dev-base:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate base branch is dev
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$BASE_REF" != "dev" ]; then
+            echo "PR base branch must be 'dev'. Current base: '$BASE_REF'"
+            exit 1
+          fi
+          echo "PR base branch is valid: '$BASE_REF'"

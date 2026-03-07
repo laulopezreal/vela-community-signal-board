@@ -93,6 +93,11 @@ Current style upgrades in this loop:
 - Repo readiness path: [submission/REPO_READINESS.md](submission/REPO_READINESS.md)
 - Jury access fallback pack (artifact-first, no public-repo assumption): [docs/JURY_ACCESS_FALLBACK_PACK.md](docs/JURY_ACCESS_FALLBACK_PACK.md)
 
+
+## Contribution workflow
+- Assumption (from the request to target `de v`): all pull requests must target the `dev` branch.
+- CI enforces this via `.github/workflows/pr-base-dev.yml`; PRs to other base branches will fail the check.
+
 ## 30-second opening narrative
 Small communities lose opportunities because high-signal updates are fragmented across chats and channels. Community Signal Board turns that noise into one ranked action queue plus a daily brief and digest in under a minute.
 
