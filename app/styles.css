@@ -594,3 +594,72 @@ body.is-submission-mode #toggle-submission-mode {
     bottom: .75rem;
   }
 }
+
+.analytics {
+  margin-top: .9rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+}
+
+.policy-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .55rem;
+}
+
+.policy-actions {
+  margin-top: .65rem;
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.policy-actions button { width: auto; }
+
+.lifecycle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .65rem;
+}
+
+.subhead {
+  margin: .9rem 0 .4rem;
+  font-size: .96rem;
+  color: #d9e6ff;
+}
+
+.item-status {
+  margin: .34rem 0 0;
+  font-size: .76rem;
+  color: #a9bde7;
+}
+
+.feedback-row {
+  display: flex;
+  gap: .4rem;
+  margin-top: .45rem;
+}
+
+.feedback-row button,
+.triage,
+.act,
+.complete,
+.miss {
+  width: auto;
+  min-height: 30px;
+  padding: .3rem .55rem;
+  font-size: .76rem;
+}
+
+@media (max-width: 1100px) {
+  .analytics { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .policy-grid,
+  .lifecycle-grid {
+    grid-template-columns: 1fr;
+  }
+}

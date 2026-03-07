@@ -55,6 +55,75 @@
       </article>
     </section>
 
+    <section class="shell analytics" aria-label="Policy and lifecycle analytics">
+      <article class="card policy-card">
+        <h2>Organization Scoring Policy</h2>
+        <p class="section-copy">Policy v1 default remains <code>urgency * 2 + relevance + confidence</code>. Customize safely per organization.</p>
+        <div class="policy-grid">
+          <label>Organization
+            <select id="policy-org"></select>
+          </label>
+          <label>Policy Version
+            <input id="policy-version" maxlength="32" value="v1" />
+          </label>
+          <label>Urgency Weight
+            <input id="policy-urgency-weight" type="number" min="0" max="5" step="0.5" value="2" />
+          </label>
+          <label>Relevance Weight
+            <input id="policy-relevance-weight" type="number" min="0" max="5" step="0.5" value="1" />
+          </label>
+          <label>Confidence Weight
+            <input id="policy-confidence-weight" type="number" min="0" max="5" step="0.5" value="1" />
+          </label>
+          <label>Confidence Handling
+            <select id="policy-confidence-mode">
+              <option value="linear">Linear (default)</option>
+              <option value="boost-high">Boost high-confidence signals</option>
+              <option value="gate-low">Penalize low-confidence signals</option>
+            </select>
+          </label>
+        </div>
+        <p class="field-help">Category multipliers (Funding, Hiring, Event, Tool, Opportunity):</p>
+        <div class="policy-grid">
+          <label>Funding<input id="policy-mult-funding" type="number" min="0.5" max="3" step="0.1" value="1" /></label>
+          <label>Hiring<input id="policy-mult-hiring" type="number" min="0.5" max="3" step="0.1" value="1" /></label>
+          <label>Event<input id="policy-mult-event" type="number" min="0.5" max="3" step="0.1" value="1" /></label>
+          <label>Tool<input id="policy-mult-tool" type="number" min="0.5" max="3" step="0.1" value="1" /></label>
+          <label>Opportunity<input id="policy-mult-opportunity" type="number" min="0.5" max="3" step="0.1" value="1" /></label>
+        </div>
+        <div class="policy-actions">
+          <button id="save-policy" type="button" class="btn-muted">Save Policy</button>
+          <button id="reset-policy" type="button" class="btn-muted">Reset Org to v1</button>
+          <p id="policy-preview" class="field-help">Preview: urgency * 2 + relevance + confidence</p>
+        </div>
+      </article>
+
+      <article class="card lifecycle-card">
+        <h2>Lifecycle Metrics Dashboard</h2>
+        <p class="section-copy">Track triage/action velocity and quality for high-score opportunities.</p>
+        <div class="lifecycle-grid">
+          <div>
+            <p class="stat-label">Avg Time-to-Triage</p>
+            <p class="stat-value" id="metric-triage">n/a</p>
+          </div>
+          <div>
+            <p class="stat-label">Avg Time-to-Action</p>
+            <p class="stat-value" id="metric-action">n/a</p>
+          </div>
+          <div>
+            <p class="stat-label">High-Score Completion Rate</p>
+            <p class="stat-value" id="metric-high-completion">0%</p>
+          </div>
+          <div>
+            <p class="stat-label">Missed-Opportunity Rate</p>
+            <p class="stat-value" id="metric-missed">0%</p>
+          </div>
+        </div>
+        <h3 class="subhead">Policy Change Comparison (Before vs After)</h3>
+        <p id="policy-change-summary" class="field-help">No policy changes recorded yet in this browser.</p>
+      </article>
+    </section>
+
     <main class="layout shell">
       <section class="card form-card" data-submission-optional="true">
         <h2>Add Signal</h2>
@@ -80,6 +149,14 @@
               <option value="Event">Event</option>
               <option value="Tool">Tool</option>
               <option value="Hiring">Hiring</option>
+            </select>
+          </label>
+          <label>Organization
+            <select id="organization" required>
+              <option value="default">Default Org</option>
+              <option value="startup">Startup Collective</option>
+              <option value="oss">OSS Maintainers</option>
+              <option value="local-org">Local Org</option>
             </select>
           </label>
           <div class="score-grid">
@@ -145,9 +222,18 @@
           <p class="item-meta"></p>
           <p class="item-metrics"></p>
           <p class="item-action"></p>
+          <p class="item-status"></p>
+          <div class="feedback-row">
+            <button class="feedback-useful btn-muted" type="button">Useful</button>
+            <button class="feedback-not-useful btn-muted" type="button">Not useful</button>
+          </div>
         </div>
         <div class="item-right">
           <span class="score"></span>
+          <button class="triage btn-muted" type="button">Mark triaged</button>
+          <button class="act btn-muted" type="button">Mark actioned</button>
+          <button class="complete btn-muted" type="button">Mark completed</button>
+          <button class="miss btn-muted" type="button">Mark missed</button>
           <button class="delete" type="button">Delete</button>
         </div>
       </li>

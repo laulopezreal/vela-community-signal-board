@@ -54,6 +54,18 @@ python3 -m http.server 5173
 
 Open: http://localhost:5173
 
+
+## Policy + analytics assumptions (implemented)
+- **Default scoring policy v1 stays unchanged**: `urgency * 2 + relevance + confidence` is preserved as the default baseline for every organization.
+- **Per-organization policies are local-browser config** (Default Org, Startup Collective, OSS Maintainers, Local Org) with editable weights, category multipliers, and confidence handling mode.
+- **Lifecycle metrics definitions**:
+  - time-to-triage = `triagedAt - createdAt`
+  - time-to-action = `actedAt - createdAt`
+  - high-score completion rate = `% of signals with score >= 13 that are marked completed`
+  - missed-opportunity rate = `% of all signals marked missed`
+- **Before/after policy comparison** uses the latest stored policy-change snapshot (metrics captured before change) versus current metrics after change.
+- **Recommendation feedback loop** is captured with per-recommendation variant votes (`Useful` / `Not useful`) and used to select higher-performing action suggestion variants over time.
+
 ## MVP scope
 Included:
 - Signal entry form
