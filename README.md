@@ -13,6 +13,8 @@ A lightweight app that helps small communities capture scattered updates, rank w
 
 ## What it does
 - Captures high-signal updates manually (title, source, urgency, category, relevance, confidence, owner)
+- Adds workflow fields per signal (`status`, `due_at`, `assigned_user_id`, `action_notes`)
+- Supports per-signal activity log and threaded comments for asynchronous collaboration
 - Ranks updates with a transparent scoring formula: `urgency * 2 + relevance + confidence`
 - Filters by category and urgency to focus fast
 - Applies community templates (startup, OSS, local org) for faster, consistent capture
@@ -20,6 +22,8 @@ A lightweight app that helps small communities capture scattered updates, rank w
 - Generates a daily brief markdown with action recommendations and explicit scoring formula
 - Copies top actions to clipboard for fast sharing in chat/email
 - Exports a markdown digest with recommended actions for async sharing
+- Evaluates notification rules for urgency threshold, overdue assigned work, and newly assigned signals
+- Delivers daily priority and weekly team digests via email draft + optional Slack webhook
 - Primary one-click judge path via **Submission Mode + Run Judge Fast Path**
 - Explicit fallback demo flow via **Run Health Check + Load Demo Scenario**
 - Generates daily brief and digest markdown artifacts for judging evidence
@@ -60,11 +64,17 @@ Included:
 - Ranked dashboard
 - Filters
 - Digest export
+- Workflow and collaboration controls inside each signal card
+- Daily/weekly digest delivery actions (email draft + optional Slack webhook)
 
 Not included (intentional weekend non-goals):
 - Auth and multi-tenant accounts
-- External API integrations
 - Advanced analytics
+
+## Assumptions for collaboration + delivery
+- Assumption: `assigned_user_id` is a lightweight team handle (e.g., `alex.pm`) and is not tied to auth identities.
+- Assumption: digest delivery is client-side best-effort. Email opens a `mailto:` draft; Slack delivery requires setting localStorage key `community-signal-board-slack-webhook` to an incoming webhook URL.
+- Assumption: urgency notification threshold defaults to `4` (MVP constant in `app/main.js`).
 
 ## Dedicated style improvement loop (parallel to functional loop)
 This repo now runs a separate style loop in parallel with feature work.

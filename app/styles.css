@@ -380,6 +380,32 @@ body.is-submission-mode #toggle-submission-mode {
   background: rgba(220, 38, 38, 0.2);
 }
 
+.notification-panel {
+  margin-top: .75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(20, 32, 59, 0.4);
+  padding: .72rem .8rem;
+}
+
+.notification-panel h3 {
+  margin: 0;
+  font-size: .92rem;
+}
+
+.notification-meta {
+  margin: .25rem 0 0;
+  color: #b7caef;
+  font-size: .8rem;
+}
+
+.notification-list {
+  margin: .55rem 0 0;
+  padding-left: 1rem;
+  color: #d9e7ff;
+  font-size: .82rem;
+}
+
 .signal-list {
   list-style: none;
   margin: .9rem 0 0;
@@ -442,6 +468,69 @@ body.is-submission-mode #toggle-submission-mode {
   color: #deebff;
   border-left: 2px solid rgba(127, 160, 255, 0.48);
   padding-left: .52rem;
+}
+
+.item-workflow {
+  margin-top: .6rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .5rem;
+}
+
+.item-workflow label {
+  margin: 0;
+  font-size: .78rem;
+  color: #c8d8f8;
+}
+
+.item-workflow textarea,
+.item-workflow input,
+.item-workflow select {
+  min-height: 34px;
+  margin-top: .2rem;
+  font-size: .84rem;
+  padding: .45rem .55rem;
+}
+
+.item-workflow textarea {
+  resize: vertical;
+}
+
+.item-collaboration {
+  margin-top: .6rem;
+  border-top: 1px solid rgba(127, 160, 255, 0.22);
+  padding-top: .45rem;
+}
+
+.item-collaboration summary {
+  cursor: pointer;
+  color: #dbe8ff;
+  font-size: .82rem;
+}
+
+.item-activity-log,
+.item-comments {
+  margin: .45rem 0 0;
+  padding-left: 1rem;
+  color: #c3d5fa;
+  font-size: .78rem;
+}
+
+.item-comment-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .4rem;
+  margin-top: .45rem;
+}
+
+.item-comment-form input,
+.item-comment-form button {
+  min-height: 32px;
+  font-size: .8rem;
+}
+
+.item-comment-form button {
+  width: auto;
 }
 
 .item-right {
@@ -582,6 +671,9 @@ body.is-submission-mode #toggle-submission-mode {
   .score-grid,
   .filters { grid-template-columns: 1fr; }
   .signal-item { flex-direction: column; }
+  .item-workflow {
+    grid-template-columns: 1fr;
+  }
   .item-right {
     align-items: flex-start;
     flex-direction: row;
